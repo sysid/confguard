@@ -1,4 +1,5 @@
 import logging
+import os
 import tomllib
 import uuid
 from datetime import datetime
@@ -23,7 +24,7 @@ def configure():
 def create_sentinel(msg: str) -> str:
     cwd = Path.cwd()
     try:
-        p = cwd.parts[-1]   # get proj dir as part of sentinel filename
+        p = cwd.parts[-1]  # get proj dir as part of sentinel filename
     except IndexError:
         p = "unknown-dir"
 
@@ -41,8 +42,43 @@ def create_sentinel(msg: str) -> str:
     return name
 
 
-def move_files(targets: list[str]):
-    print(targets)
+def move_files(name: str, targets: list[str]) -> list[str]:
+    target_path = config.confguard_path / name
+    Path(target_path).mkdir(parents=True, exist_ok=True)
+    target_locations = []
+
+    for t in targets:
+        p = Path(t)
+        if p.exists():
+            _log.debug(f"Moving {p} to {target_path}")
+            p.rename(target_path / p.name)
+            target_locations.append(str(target_path / p.name))
+        else:
+            _log.debug(f"File {p} does not exist")
+    return target_locations
+
+
+def _create_relative_path(source: str, target: str) -> Path:
+    source_path = Path(source).parent
+    target_path = Path(target).parent
+    name = Path(source).name
+    rel_path = os.path.relpath(target_path, source_path)
+    return Path(rel_path) / name
+
+
+def create_links(target_locations: list[str], is_relative: bool = False) -> list[str]:
+    links = []
+    for t in target_locations:
+        p = Path(t)
+        link = Path.cwd() / p.name
+        p = _create_relative_path(str(link), str(p))
+        _log.debug(f"Creating link {link} to {p}")
+        link.symlink_to(p)
+        links.append(str(p))
+        _ = None
+
+    _log.debug(f"{links=}")
+    return links
 
 
 @app.command()
@@ -62,8 +98,9 @@ def guard(
     if targets is None:
         typer.echo(f"Unknown target: {what}, Must be one of {config.confguard.keys()}")
         raise typer.Exit(1)
-    move_files(targets.get("targets"))
-    # create_links()
+    target_locations = move_files(name=name, targets=targets.get("targets"))
+    create_links(target_locations)
+
 
 @app.command()
 def check_source(source: str, verbose: bool = False):
