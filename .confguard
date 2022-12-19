@@ -1,0 +1,3 @@
+#  vim: set ts=4 sw=4 tw=120 et ft=toml:
+[config]
+files = ['.envrc', '.run']

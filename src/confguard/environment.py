@@ -6,12 +6,14 @@ import tomllib
 from enum import Enum
 from pathlib import Path
 
+import tomlkit
 import typer
 from pydantic import BaseSettings
 
 RUN_ENVS = ["local", "dev"]
 ROOT_DIR = Path(__file__).parent.parent.parent.absolute()
 FINGERPRINT = ".*.confguard"  # identifier for sentinel files
+CONFGUARD_BKP_DIR = ".confguard.bkp"
 
 RUN_ENV = os.environ.get("RUN_ENV", "local").lower()
 assert RUN_ENV in RUN_ENVS, f"RUN_ENV must be one of {RUN_ENVS}"
@@ -60,6 +62,10 @@ class Environment(BaseSettings):
         )
         sanitized_cfg = {k: v for k, v in cfg.items() if k not in skip_keys}
         return sanitized_cfg
+
+    def load_config(self):
+        with open(".confguard", mode="rt", encoding="utf-8") as fp:
+            cfg = tomlkit.load(fp)
 
 
 config = Environment()

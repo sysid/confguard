@@ -1,9 +1,11 @@
 import logging
+import shutil
 from pathlib import Path
 
 import pytest
 
-from confguard.environment import config, FINGERPRINT
+from confguard.environment import config, FINGERPRINT, ROOT_DIR
+from confguard.exceptions import FileDoesNotExistError, BackupExistError
 # noinspection PyProtectedMember
 from confguard.services import _create_relative_path, Sentinel, Files, Links
 
@@ -39,6 +41,82 @@ class TestFiles:
         "targets",
         (
             ["xxx/xxx.txt"],
+            [".run"],
+            [".envrc", ".run"],
+            [".envrc", ".run", "xxx/xxx.txt"],
+        )
+    )
+    def test_create_bkp(self, targets):
+        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=targets)
+        f.create_bkp()
+
+        assert f.bkp_dir.exists()
+        assert len(list(f.bkp_dir.glob("*"))) == len(targets)
+        for target in targets:
+            assert (f.bkp_dir / target).exists()
+
+    @pytest.mark.parametrize("targets", ([".envrc"],))
+    def test_create_bkp_but_bkp_dir_exists(self, targets):
+        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=targets)
+        f.create_bkp()
+
+        with pytest.raises(BackupExistError) as e:
+            f.create_bkp()
+
+    @pytest.mark.parametrize(
+        "targets",
+        (
+            ["xxx/xxx.txt"],
+            [".envrc", ".run", "xxx/xxx.txt"],
+        )
+    )
+    def test_restore_bkp(self, targets):
+        # given: backup created
+        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=targets)
+        f.create_bkp()
+
+        # when: all files are moved/deleted
+        test_proj = ROOT_DIR / "tests/resources/test_proj"
+        shutil.rmtree(test_proj / ".run", ignore_errors=True)  # will be linked
+        Path(test_proj / ".run").unlink(missing_ok=True)  # will be linked
+        Path(test_proj / ".envrc").unlink(missing_ok=True)  # will be linked
+        Path(test_proj / "xxx/xxx.txt").unlink(missing_ok=True)  # will be linked
+
+        f.restore_bkp()
+
+        # then: files are restored
+        Path(test_proj / ".run").exists()
+        Path(test_proj / ".run").is_dir()
+        Path(test_proj / ".envrc").exists()
+        Path(test_proj / ".envrc").is_file()
+        Path(test_proj / "xxx/xxx.txt").exists()
+        Path(test_proj / "xxx/xxx.txt").is_file()
+
+    @pytest.mark.parametrize(
+        "targets",
+        (
+            ["xxx/xxx.txt"],
+            [".run"],
+            [".envrc", ".run"],
+            [".envrc", ".run", "xxx/xxx.txt"],
+        )
+    )
+    def test_delete_bkp(self, targets):
+        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=targets)
+        f.create_bkp()
+        f.delete_bkp_dir()
+        assert not f.bkp_dir.exists()
+
+    def test_delete_nonexisting_bkp(self):
+        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=[])
+        f.delete_bkp_dir()
+        assert not f.bkp_dir.exists()
+
+    @pytest.mark.parametrize(
+        "targets",
+        (
+            ["xxx/xxx.txt"],
+            [".run"],
             [".envrc", ".run"],
             [".envrc", ".run", "xxx/xxx.txt"],
         )
@@ -84,7 +162,7 @@ class TestLinks:
     )
     def test_create_links(self, clear_test_proj, source_locations, target_locations):
         lk = Links(source_locations=source_locations, target_locations=target_locations)
-        lk.create_links()
+        lk.create()
         for lk in source_locations:
             assert Path(lk).is_symlink()
 
@@ -98,10 +176,39 @@ class TestLinks:
     )
     def test_create_rel_links(self, clear_test_proj, source_locations, target_locations):
         lk = Links(source_locations=source_locations, target_locations=target_locations)
-        lk.create_links(is_relative=True)
+        lk.create(is_relative=True)
         for lk in source_locations:
             assert Path(lk).is_symlink()
 
+    @pytest.mark.parametrize(
+        "source_locations, target_locations",
+        (
+            ([Path.cwd() / "xxx/xxx.txt"], [TARGET_DIR / 'xxx/xxx.txt']),
+            ([Path.cwd() / ".envrc"], [TARGET_DIR / '.envrc']),
+            ([Path.cwd() / ".envrc", Path.cwd() / ".run"], [TARGET_DIR / '.envrc', TARGET_DIR / '.run']),
+        )
+    )
+    def test_remove_links(self, clear_test_proj, source_locations, target_locations):
+        lk = Links(source_locations=source_locations, target_locations=target_locations)
+        lk.create()
+
+        lk.remove()
+        for lk in source_locations:
+            assert not Path(lk).exists()
+
+    @pytest.mark.parametrize(
+        "source_locations, target_locations",
+        (
+            ([Path.cwd() / ".envrc"], [TARGET_DIR / '.envrc']),
+        )
+    )
+    def test_remove_nonexisting_links(self, clear_test_proj, source_locations, target_locations):
+        lk = Links(source_locations=source_locations, target_locations=target_locations)
+        lk.create()
+        Path(source_locations[0]).unlink()
+        lk.remove()
+        for lk in source_locations:
+            assert not Path(lk).exists()
 
 @pytest.mark.parametrize(
     ("source", "target", "expected"),

@@ -44,9 +44,25 @@ def _guard(what):
 
     sentinel = Sentinel.create()
     files = Files(rel_target_dir=Path(sentinel.name), source_dir=sentinel.source_dir, targets=targets.get("targets"))
-    files.move_files()
+    try:
+        files.create_bkp()
+    except Exception as e:
+        typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
+        files.delete_bkp_dir()
+        sentinel.remove()
+        raise typer.Exit(1)
+
     lks = Links(source_locations=files.source_locations, target_locations=files.target_locations)
-    lks.create_links()
+    try:
+        files.move_files()
+        lks.create()
+    except Exception as e:
+        typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
+        lks.remove()
+        files.restore_bkp()
+        raise typer.Exit(1)
+    finally:
+        files.delete_bkp_dir()
 
 
 @app.command()

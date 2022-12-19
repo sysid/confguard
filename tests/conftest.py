@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from confguard.environment import ROOT_DIR, config
+from confguard.environment import ROOT_DIR, config, CONFGUARD_BKP_DIR
 
 _log = logging.getLogger(__name__)
 log_fmt = r"%(asctime)-15s %(levelname)s %(name)s %(funcName)s:%(lineno)d %(message)s"
@@ -30,8 +30,8 @@ def test_proj():
         p.unlink()
 
     shutil.rmtree(test_proj / "xxx", ignore_errors=True)
-
     shutil.rmtree(test_proj / ".run", ignore_errors=True)  # if still dir
+    shutil.rmtree(test_proj / CONFGUARD_BKP_DIR, ignore_errors=True)
     Path(test_proj / ".run").unlink(missing_ok=True)  # if already link
 
     shutil.copytree(ref_proj / "xxx", test_proj / "xxx")
