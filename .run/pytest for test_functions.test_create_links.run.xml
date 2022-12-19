@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="true" type="tests" factoryName="py.test">
+  <configuration default="false" name="pytest for test_functions.test_create_links" type="tests" factoryName="py.test" nameIsGenerated="true">
     <module name="confguard" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -7,18 +7,17 @@
       <env name="RUN_ENV" value="dev" />
       <env name="CONFGUARD_PATH" value="/private/tmp/confguard" />
     </envs>
-    <option name="SDK_HOME" value="$PROJECT_DIR$/.venv/bin/python" />
-    <option name="SDK_NAME" value="Python 3.11 (confguard)" />
+    <option name="SDK_HOME" value="" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests/resources/test_proj" />
-    <option name="IS_MODULE_SDK" value="false" />
+    <option name="IS_MODULE_SDK" value="true" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="_new_keywords" value="&quot;&quot;" />
     <option name="_new_parameters" value="&quot;&quot;" />
     <option name="_new_additionalArguments" value="&quot;&quot;" />
-    <option name="_new_target" value="&quot;&quot;" />
-    <option name="_new_targetType" value="&quot;PATH&quot;" />
+    <option name="_new_target" value="&quot;test_functions.test_create_links&quot;" />
+    <option name="_new_targetType" value="&quot;PYTHON&quot;" />
     <method v="2" />
   </configuration>
 </component>

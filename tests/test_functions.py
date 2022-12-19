@@ -4,30 +4,30 @@ from pathlib import Path
 
 import pytest
 
-from confguard.environment import config
-from confguard.main import create_sentinel, move_files, create_links, _create_relative_path
+from confguard.environment import config, FINGERPRINT, ROOT_DIR
+from confguard.main import (
+    create_sentinel,
+    move_files,
+    create_links,
+    _create_relative_path, _guard,
+)
 
 _log = logging.getLogger(__name__)
 
 
 def test_create_sentinel():
-    existings = list(Path.cwd().glob(".confguard-*"))
-    for e in existings:
-        e.unlink()
-    name = create_sentinel("default")
+    name = create_sentinel()
     assert Path(f".{name}.confguard").exists()
 
 
 def test_create_sentinel_exists():
-    existings = list(Path.cwd().glob(".confguard-*"))
-    for e in existings:
-        e.unlink()
-    _ = create_sentinel("default")
-    name = create_sentinel("default")
+    _ = create_sentinel()
+    name = create_sentinel()
     assert Path(f".{name}.confguard").exists()
+    assert len(list(Path.cwd().glob(FINGERPRINT))) == 1
 
 
-def test_move_files(test_proj):
+def test_move_files():
     targets = [".envrc", ".run"]
     name = "test_proj-1234"
     target_locations = move_files(name, targets)
@@ -36,7 +36,7 @@ def test_move_files(test_proj):
         assert str(Path(config.confguard_path / name / t)) in target_locations
 
 
-def test_create_links(test_proj):
+def test_create_links():
     targets = [".envrc", ".run"]
     name = "test_proj-1234"
     target_locations = move_files(name, targets)
@@ -52,9 +52,13 @@ def test_create_links(test_proj):
     ("source", "target", "expected"),
     (
         ("/c/b/a/xxx/.envrc", "/c/y/xxx-123/.envrc", "../../../y/xxx-123/.envrc"),
-        ("/c/b/a/xxx/.envrc", "/tmp/y/xxx-123/.envrc", "../../../../tmp/y/xxx-123/.envrc"),
+        (
+            "/c/b/a/xxx/.envrc",
+            "/tmp/y/xxx-123/.envrc",
+            "../../../../tmp/y/xxx-123/.envrc",
+        ),
         ("/c/xxx/.envrc", "/c/y/xxx-123/.envrc", "../y/xxx-123/.envrc"),
-    )
+    ),
 )
 def test_find_relative_path(source, target, expected):
     _log.info(f"{source=} {target=} {expected=}")
@@ -76,7 +80,7 @@ def test_find_relative_path(source, target, expected):
             new_tp = target_parts[i:]
             break
 
-    rel_path = ['..'] * len(new_sp) + list(new_tp) + [name]
+    rel_path = [".."] * len(new_sp) + list(new_tp) + [name]
     rel_path = Path(*rel_path)
     assert rel_path == Path(expected)
     _ = None
@@ -86,10 +90,29 @@ def test_find_relative_path(source, target, expected):
     ("source", "target", "expected"),
     (
         ("/c/b/a/xxx/.envrc", "/c/y/xxx-123/.envrc", "../../../y/xxx-123/.envrc"),
-        ("/c/b/a/xxx/.envrc", "/tmp/y/xxx-123/.envrc", "../../../../tmp/y/xxx-123/.envrc"),
+        (
+            "/c/b/a/xxx/.envrc",
+            "/tmp/y/xxx-123/.envrc",
+            "../../../../tmp/y/xxx-123/.envrc",
+        ),
         ("/c/xxx/.envrc", "/c/y/xxx-123/.envrc", "../y/xxx-123/.envrc"),
-    )
+    ),
 )
 def test_find_relative_path_builtin(source, target, expected):
     rel_path = _create_relative_path(source, target)
     assert Path(rel_path) == Path(expected)
+
+
+def test__guard():
+    test_proj = ROOT_DIR / "tests/resources/test_proj"
+    _guard("PYTHON")
+
+    sentinel = list(Path(test_proj).glob("**/.test_proj-*"))
+    assert len(sentinel) == 1
+
+    confguard = list(Path(config.confguard_path).glob("**/test_proj-*"))
+    assert len(confguard) == 1
+    confguard = confguard[0]
+    assert confguard.is_dir()
+    assert confguard / ".envrc" in confguard.iterdir()
+    assert confguard / ".run" in confguard.iterdir()
