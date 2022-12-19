@@ -45,6 +45,14 @@ test:  ## run tests
 tox:   ## Run tox
 	tox
 
+.PHONY: view-source
+view-source:  ## view-source: visual check
+	@find tests/resources/ -ls
+
+.PHONY: view-target
+view-target:  ## view-target: visual check
+	find /tmp/confguard/ -ls
+
 ################################################################################
 # Building, Deploying \
 building:  ## ##################################################################
