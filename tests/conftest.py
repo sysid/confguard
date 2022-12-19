@@ -25,12 +25,26 @@ def test_proj():
     ref_proj = ROOT_DIR / "tests/resources/ref_proj"
 
     Path(test_proj / ".envrc").unlink(missing_ok=True)
+    # delete existing sentinels
     for p in Path(test_proj).glob("**/.test_proj-*"):
         p.unlink()
+
+    shutil.rmtree(test_proj / "xxx", ignore_errors=True)
 
     shutil.rmtree(test_proj / ".run", ignore_errors=True)  # if still dir
     Path(test_proj / ".run").unlink(missing_ok=True)  # if already link
 
+    shutil.copytree(ref_proj / "xxx", test_proj / "xxx")
     shutil.copytree(ref_proj / ".run", test_proj / ".run")
     shutil.copyfile(ref_proj / ".envrc", test_proj / ".envrc")
     _ = None
+
+
+@pytest.fixture(autouse=False)
+def clear_test_proj():
+    test_proj = ROOT_DIR / "tests/resources/test_proj"
+    # shutil.rmtree(test_proj / "xxx", ignore_errors=True)  # must exist
+    shutil.rmtree(test_proj / ".run", ignore_errors=True)  # will be linked
+    Path(test_proj / ".run").unlink(missing_ok=True)  # will be linked
+    Path(test_proj / ".envrc").unlink(missing_ok=True)  # will be linked
+    Path(test_proj / "xxx/xxx.txt").unlink(missing_ok=True)  # will be linked

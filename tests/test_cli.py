@@ -5,8 +5,8 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from confguard.environment import config
-from confguard.main import app
+from confguard.environment import config, ROOT_DIR
+from confguard.main import app, _guard
 
 runner = CliRunner()
 
@@ -26,3 +26,33 @@ class TestGuard:
         result = runner.invoke(app, ["guard", "XXXXXX", "-v"])
         print(result.stdout)
         assert result.exit_code == 1
+
+
+def test__guard():
+    test_proj = ROOT_DIR / "tests/resources/test_proj"
+    _guard("PYTHON")
+
+    sentinel = list(Path(test_proj).glob("**/.test_proj-*"))
+    assert len(sentinel) == 1
+
+    # then confguard directory is there
+    confguard = list(Path(config.confguard_path).glob("**/test_proj-*"))
+    assert len(confguard) == 1
+    confguard = confguard[0]
+    assert confguard.is_dir()
+
+    # then: confguard directory contains the files and dirs
+    assert (confguard / ".envrc").is_file()
+    assert (confguard / ".run").is_dir()
+    assert (confguard / "xxx/xxx.txt").is_file()
+
+    # then: in source dir the files and dirs are replaced by links
+    assert (test_proj / ".envrc").is_symlink()
+    assert (test_proj / ".run").is_symlink()
+    assert (test_proj / "xxx/xxx.txt").is_symlink()
+
+    # then: the links point to the confguard directory replacements
+    fixed_tmp_path = str(Path(test_proj / ".envrc").resolve()).replace("/private", "")  # macos fix
+    assert Path(fixed_tmp_path).resolve() == Path(confguard / ".envrc")
+    fixed_tmp_path = str(Path(test_proj / ".run").resolve()).replace("/private", "")  # macos fix
+    assert Path(fixed_tmp_path).resolve() == Path(confguard / ".run")

@@ -21,7 +21,7 @@ CONFIG_TEMPLATE = """\
 targets = [".envrc",]
 
 [PYTHON]
-targets = [".envrc", ".run"]
+targets = [".envrc", ".run", "xxx/xxx.txt"]
 """
 
 

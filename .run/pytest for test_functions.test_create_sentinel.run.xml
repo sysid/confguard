@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="pytest for test_functions.test_create_sentinel" type="tests" factoryName="py.test" nameIsGenerated="true">
+  <configuration default="false" name="pytest for tests.test_services.test_create_sentinel" type="tests" factoryName="py.test" nameIsGenerated="true">
     <module name="confguard" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -16,7 +16,7 @@
     <option name="_new_keywords" value="&quot;&quot;" />
     <option name="_new_parameters" value="&quot;&quot;" />
     <option name="_new_additionalArguments" value="&quot;&quot;" />
-    <option name="_new_target" value="&quot;test_functions.test_create_sentinel&quot;" />
+    <option name="_new_target" value="&quot;tests.test_services.test_create_sentinel&quot;" />
     <option name="_new_targetType" value="&quot;PYTHON&quot;" />
     <method v="2" />
   </configuration>

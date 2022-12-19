@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="pytest in test_functions.py" type="tests" factoryName="py.test" nameIsGenerated="true">
+  <configuration default="false" name="pytest in test_services.py" type="tests" factoryName="py.test" nameIsGenerated="true">
     <module name="confguard" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -16,7 +16,7 @@
     <option name="_new_keywords" value="&quot;&quot;" />
     <option name="_new_parameters" value="&quot;&quot;" />
     <option name="_new_additionalArguments" value="&quot;&quot;" />
-    <option name="_new_target" value="&quot;$PROJECT_DIR$/tests/test_functions.py&quot;" />
+    <option name="_new_target" value="&quot;$PROJECT_DIR$/tests/test_services.py&quot;" />
     <option name="_new_targetType" value="&quot;PATH&quot;" />
     <method v="2" />
   </configuration>
