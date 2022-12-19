@@ -14,34 +14,30 @@ _log = logging.getLogger(__name__)
 
 @dataclass(frozen=True, kw_only=True)
 class Sentinel:
-    name: str
-    source_dir: Path
+    """
+    Delegates sentinel management to environment class
+    """
 
     @staticmethod
-    def create() -> 'Sentinel':
+    def create() -> None:
+        if config.sentinel is not None:
+            _log.debug(f"Sentinel already exists: {config.sentinel=}")
+            return
+
         source_dir = Path.cwd()
         try:
             p = source_dir.parts[-1]  # get proj dir as part of sentinel filename
         except IndexError:
             p = "unknown-dir"
-        sentinel = list(source_dir.glob(FINGERPRINT))  # check existence
-        if len(sentinel) > 0:
-            _log.debug(f"Found sentinel: {sentinel}")
-            return Sentinel(source_dir=source_dir, name=sentinel[0].name.split(".")[1])
 
-        name = f"{p}-{uuid.uuid4().hex}"
-        sentinel = f".{name}.{config.app_name}"
-        with Path(sentinel).open("w") as f:
-            msg = f"Created and managed by {config.app_name}. DO NOT REMOVE.\n{datetime.utcnow()}"
-            print(msg, file=f)
-        _log.debug(f"Created sentinel: {name}")
-        return Sentinel(source_dir=source_dir, name=name)
+        sentinel = f"{p}-{uuid.uuid4().hex}"
+        config.confguard_add_sentinel(sentinel)
+        _log.debug(f"Sentinel created: {config.sentinel=}")
 
-    def remove(self) -> None:
-        assert self.source_dir is not None, f"Sentinel {self.name} has no source_dir"
-        sentinel = f".{self.name}.{config.app_name}"
-        Path(self.source_dir / sentinel).unlink(missing_ok=True)
-        _log.debug(f"Removed sentinel: {self.source_dir / sentinel}")
+    @staticmethod
+    def remove() -> None:
+        config.confguard_remove_sentinel()
+        _log.debug(f"Sentinel removed: {config.sentinel=}")
 
 
 @dataclass(frozen=False, kw_only=True)

@@ -14,20 +14,19 @@ _log = logging.getLogger(__name__)
 
 class TestSentinel:
     def test_create(self):
-        s = Sentinel.create()
-        assert isinstance(s, Sentinel)
-        assert Path(f".{s.name}.confguard").exists()
+        Sentinel.create()
+        assert config.sentinel is not None
 
     def test_create_sentinel_exists(self):
-        _ = Sentinel.create()
-        s = Sentinel.create()
-        assert Path(f".{s.name}.confguard").exists()
-        assert len(list(Path.cwd().glob(FINGERPRINT))) == 1
+        Sentinel.create()
+        first = config.sentinel
+        Sentinel.create()
+        assert config.sentinel == first
 
     def test_remove(self):
-        s = Sentinel.create()
-        s.remove()
-        assert not Path(f".{s.name}.confguard").exists()
+        Sentinel.create()
+        Sentinel.remove()
+        assert config.sentinel is None
 
 
 PYTHON_TARGETS = [".envrc", ".run", "xxx/xxx.txt"]

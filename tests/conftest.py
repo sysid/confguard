@@ -24,7 +24,12 @@ def test_proj():
     test_proj = ROOT_DIR / "tests/resources/test_proj"
     ref_proj = ROOT_DIR / "tests/resources/ref_proj"
 
+    #### NOT WORKING: LOADING config before results in lost file-pointer ####
+    # shutil.rmtree(test_proj, ignore_errors=True)
+    # shutil.copytree(ref_proj, test_proj)
+
     Path(test_proj / ".envrc").unlink(missing_ok=True)
+    Path(test_proj / ".confguard").unlink(missing_ok=True)
     # delete existing sentinels
     for p in Path(test_proj).glob("**/.test_proj-*"):
         p.unlink()
@@ -37,6 +42,7 @@ def test_proj():
     shutil.copytree(ref_proj / "xxx", test_proj / "xxx")
     shutil.copytree(ref_proj / ".run", test_proj / ".run")
     shutil.copyfile(ref_proj / ".envrc", test_proj / ".envrc")
+    shutil.copyfile(ref_proj / ".confguard", test_proj / ".confguard")
     _ = None
 
 

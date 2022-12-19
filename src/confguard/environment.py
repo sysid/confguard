@@ -9,6 +9,7 @@ from pathlib import Path
 import tomlkit
 import typer
 from pydantic import BaseSettings
+from tomlkit import TOMLDocument, table, comment, nl
 
 RUN_ENVS = ["local", "dev"]
 ROOT_DIR = Path(__file__).parent.parent.parent.absolute()
@@ -19,11 +20,9 @@ RUN_ENV = os.environ.get("RUN_ENV", "local").lower()
 assert RUN_ENV in RUN_ENVS, f"RUN_ENV must be one of {RUN_ENVS}"
 
 CONFIG_TEMPLATE = """\
-[DEFAULT]
-targets = [".envrc",]
-
-[PYTHON]
-targets = [".envrc", ".run", "xxx/xxx.txt"]
+#  vim: set ts=4 sw=4 tw=120 et ft=toml:
+[config]
+files = ['.envrc', '.run']
 """
 
 
@@ -32,8 +31,8 @@ class Environment(BaseSettings):
     log_level: str = "INFO"
     twbm_db_url: str = "sqlite:///db/bm.db"
     confguard_path: Path = ROOT_DIR / "savedir"
-    confguard: dict = {}
-    config_path: Path = None
+    confguard: TOMLDocument = {}
+    config_path: Path = Path(".confguard")
 
     # init
     def __init__(self, **data):
@@ -41,18 +40,47 @@ class Environment(BaseSettings):
 
         Path(self.confguard_path).mkdir(parents=True, exist_ok=True)
 
-        self.config_path = Path(typer.get_app_dir(self.app_name)) / "config.toml"
         if not self.config_path.is_file():
-            Path(self.config_path.parent).mkdir(parents=True, exist_ok=True)
             with open(self.config_path, "w") as textfile:
                 print(CONFIG_TEMPLATE, file=textfile)
 
-        with open(self.config_path, "rb") as f:
-            self.confguard = tomllib.load(f)
+        self.load_confguard()
 
     @property
     def dbfile(self):
         return f"{self.twbm_db_url.split('sqlite:///')[-1]}"
+
+    @property
+    def sentinel(self) -> str | None:
+        try:
+            return self.confguard["_internal_"]["sentinel"]
+        except KeyError:
+            return None
+
+    def load_confguard(self):
+        with open(self.config_path, mode="rt", encoding="utf-8") as fp:
+            self.confguard = tomlkit.load(fp)
+
+    def confguard_update_sentinel(self, sentinel: str) -> None:
+        self.confguard["_internal_"]["sentinel"] = sentinel
+        self._save_confguard()
+
+    def confguard_remove_sentinel(self) -> None:
+        del self.confguard["_internal_"]["sentinel"]
+        del self.confguard["_internal_"]
+        self._save_confguard()
+
+    def confguard_add_sentinel(self, sentinel: str) -> None:
+        # self.confguard.add(nl)
+        tab = table()
+        tab.add("sentinel", sentinel)
+        self.confguard["_internal_"] = tab
+        self.confguard["_internal_"].comment("DO NOT EDIT FROM HERE")
+        self._save_confguard()
+
+    def _save_confguard(self):
+        with open(self.config_path, mode="wt", encoding="utf-8") as fp:
+            tomlkit.dump(self.confguard, fp)
 
     def log_config(self) -> dict:
         cfg = self.dict()
@@ -62,10 +90,6 @@ class Environment(BaseSettings):
         )
         sanitized_cfg = {k: v for k, v in cfg.items() if k not in skip_keys}
         return sanitized_cfg
-
-    def load_config(self):
-        with open(".confguard", mode="rt", encoding="utf-8") as fp:
-            cfg = tomlkit.load(fp)
 
 
 config = Environment()

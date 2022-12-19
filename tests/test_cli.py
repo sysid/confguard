@@ -30,16 +30,14 @@ class TestGuard:
 
 def test__guard():
     test_proj = ROOT_DIR / "tests/resources/test_proj"
-    _guard("PYTHON")
-
-    sentinel = list(Path(test_proj).glob("**/.test_proj-*"))
-    assert len(sentinel) == 1
+    _guard()
 
     # then confguard directory is there
     confguard = list(Path(config.confguard_path).glob("**/test_proj-*"))
     assert len(confguard) == 1
     confguard = confguard[0]
     assert confguard.is_dir()
+    assert confguard.parts[-1] == config.sentinel
 
     # then: confguard directory contains the files and dirs
     assert (confguard / ".envrc").is_file()

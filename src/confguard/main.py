@@ -36,20 +36,24 @@ def guard(
     _guard(what)
 
 
-def _guard(what):
-    targets = config.confguard.get(what)
-    if targets is None:
-        typer.echo(f"Unknown target: {what}, Must be one of {config.confguard.keys()}")
-        raise typer.Exit(1)
+def _guard() -> None:
+    cfg = config.confguard.get("config")
+    if cfg is None:
+        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
+        return
+    targets = cfg.get("targets")
+    if cfg is None:
+        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
+        return
 
-    sentinel = Sentinel.create()
-    files = Files(rel_target_dir=Path(sentinel.name), source_dir=sentinel.source_dir, targets=targets.get("targets"))
+    Sentinel.create()
+    files = Files(rel_target_dir=config.sentinel, source_dir=Path.cwd(), targets=targets)
     try:
         files.create_bkp()
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
         files.delete_bkp_dir()
-        sentinel.remove()
+        Sentinel.remove()
         raise typer.Exit(1)
 
     lks = Links(source_locations=files.source_locations, target_locations=files.target_locations)
