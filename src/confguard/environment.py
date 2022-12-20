@@ -42,11 +42,11 @@ class Environment(BaseSettings):
 
         Path(self.confguard_path).mkdir(parents=True, exist_ok=True)
 
-        if not self.config_path.is_file():
-            with open(self.config_path, "w") as textfile:
-                print(CONFIG_TEMPLATE, file=textfile)
+        # if not self.config_path.is_file():
+        #     with open(self.config_path, "w") as textfile:
+        #         print(CONFIG_TEMPLATE, file=textfile)
 
-        self.load_confguard()
+        # self.load_confguard()
 
     @property
     def dbfile(self):

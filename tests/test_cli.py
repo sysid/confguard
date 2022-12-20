@@ -23,10 +23,14 @@ class TestGuard:
         # assert Path(config.confguard_path).exists()
 
     def test_unguard(self, caplog):
+        # given guarded project
         caplog.set_level(
             100000
         )  # BUG: https://github.com/pallets/click/issues/824#issuecomment-562581313
+        _guard(source_dir=TEST_PROJ)
+        # when
         result = runner.invoke(app, ["unguard", str(TEST_PROJ)])
+        # then
         print(result.stdout)
         assert result.exit_code == 0
 

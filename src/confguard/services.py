@@ -50,6 +50,7 @@ class Files:
     target_dir: Path = field(init=False)
     # bkp_dir: Path = field(init=False)
     targets: list[str]
+
     # target_locations: list[Path] = field(default_factory=list)
     # source_locations: list[Path] = field(default_factory=list)
 

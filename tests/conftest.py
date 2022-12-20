@@ -42,6 +42,7 @@ def test_proj():
     shutil.copytree(REF_PROJ / ".run", TEST_PROJ / ".run")
     shutil.copyfile(REF_PROJ / ".envrc", TEST_PROJ / ".envrc")
     shutil.copyfile(REF_PROJ / ".confguard", TEST_PROJ / ".confguard")
+    config.load_confguard()
     _ = None
 
 
