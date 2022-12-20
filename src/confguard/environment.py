@@ -2,14 +2,16 @@
 # Base Environment
 ################################################################################
 import os
+import sys
 import tomllib
 from enum import Enum
 from pathlib import Path
 
+import pydantic
 import tomlkit
 import typer
 from pydantic import BaseSettings
-from tomlkit import TOMLDocument, table, comment, nl
+from tomlkit import TOMLDocument, comment, nl, table
 
 RUN_ENVS = ["local", "dev"]
 ROOT_DIR = Path(__file__).parent.parent.parent.absolute()
@@ -30,7 +32,7 @@ class Environment(BaseSettings):
     app_name: str = "confguard"
     log_level: str = "INFO"
     twbm_db_url: str = "sqlite:///db/bm.db"
-    confguard_path: Path = ROOT_DIR / "savedir"
+    confguard_path: Path
     confguard: TOMLDocument = {}
     config_path: Path = Path(".confguard")
 
@@ -92,5 +94,12 @@ class Environment(BaseSettings):
         return sanitized_cfg
 
 
-config = Environment()
-_ = None
+try:
+    config = Environment()
+except pydantic.error_wrappers.ValidationError as e:
+    typer.secho(
+        f"CONFIGURATION ERROR: Make sure environment variable CONFGUARD_PATH is set.",
+        fg=typer.colors.RED,
+        err=True
+    )
+    sys.exit(1)

@@ -6,8 +6,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from confguard.environment import FINGERPRINT, config, CONFGUARD_BKP_DIR
-from confguard.exceptions import BackupExistError, FileDoesNotExistError, BackupNotDeleted
+from confguard.environment import CONFGUARD_BKP_DIR, FINGERPRINT, config
+from confguard.exceptions import (
+    BackupExistError,
+    BackupNotDeleted,
+    FileDoesNotExistError,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -30,7 +34,7 @@ class Sentinel:
         except IndexError:
             p = "unknown-dir"
 
-        sentinel = f"{p}-{uuid.uuid4().hex}"
+        sentinel = f"{p}-{uuid.uuid4().hex[:8]}"
         config.confguard_add_sentinel(sentinel)
         _log.debug(f"Sentinel created: {config.sentinel=}")
 
@@ -106,11 +110,14 @@ class Files:
 
             if bkp_path.exists():
                 if bkp_path.is_file():
-                    (self.source_dir / rel_path).parent.exists() or (self.source_dir / rel_path).parent.mkdir(
-                        parents=True, exist_ok=True)
+                    (self.source_dir / rel_path).parent.exists() or (
+                        self.source_dir / rel_path
+                    ).parent.mkdir(parents=True, exist_ok=True)
 
                     if src_path.exists() and src_path.is_symlink():
-                        _log.warning(f"{src_path=} is already symlinked, backup will overwrite it with original file")
+                        _log.warning(
+                            f"{src_path=} is already symlinked, backup will overwrite it with original file"
+                        )
                         src_path.unlink()
 
                     if src_path.exists():
@@ -123,7 +130,9 @@ class Files:
                     _log.info(f"Restoring {src_path=}.")
                     shutil.copytree(bkp_path, src_path, dirs_exist_ok=True)
             else:
-                _log.warning(f"File {bkp_path=} does not exist in backup. Cannot restore.")
+                _log.warning(
+                    f"File {bkp_path=} does not exist in backup. Cannot restore."
+                )
 
     @staticmethod
     def delete_dir(dir_: Path) -> None:
@@ -132,7 +141,9 @@ class Files:
         except FileNotFoundError:
             pass
         except Exception:
-            raise BackupNotDeleted(f"Backup dir {dir_} could not be deleted. Please delete it manually.")
+            raise BackupNotDeleted(
+                f"Backup dir {dir_} could not be deleted. Please delete it manually."
+            )
 
 
 def _create_relative_path(source: str, target: str) -> Path:
@@ -175,7 +186,9 @@ class Links:
                     _log.debug(f"Removing link {src_path}")
                     src_path.unlink(missing_ok=True)
                 else:
-                    _log.warning(f"File {src_path=} is not a symlink. Skipping removal.")
+                    _log.warning(
+                        f"File {src_path=} is not a symlink. Skipping removal."
+                    )
             else:
                 _log.warning(f"{src_path} does not exist")
 

@@ -4,10 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from confguard.environment import config, ROOT_DIR, CONFGUARD_BKP_DIR
+from confguard.environment import CONFGUARD_BKP_DIR, ROOT_DIR, config
 from confguard.exceptions import BackupExistError
+
 # noinspection PyProtectedMember
-from confguard.services import Sentinel, Files, Links
+from confguard.services import Files, Links, Sentinel
 from tests.conftest import SENTINEL, TARGET_DIR
 
 _log = logging.getLogger(__name__)
@@ -31,7 +32,6 @@ class TestSentinel:
 
 
 class TestFiles:
-
     @pytest.mark.parametrize(
         "targets",
         (
@@ -39,9 +39,10 @@ class TestFiles:
             [".run"],
             [".envrc", ".run"],
             [".envrc", ".run", "xxx/xxx.txt"],
-        )
+        ),
     )
     def test_create_bkp(self, targets):
+        test_proj = ROOT_DIR / "tests/resources/test_proj"
         bkp_dir = Path.cwd() / CONFGUARD_BKP_DIR
         f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
         f.create_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
@@ -60,10 +61,7 @@ class TestFiles:
         with pytest.raises(BackupExistError) as e:
             f.create_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
 
-    @pytest.mark.parametrize(
-        "targets",
-        ([".envrc", ".run", "xxx/xxx.txt"],)
-    )
+    @pytest.mark.parametrize("targets", ([".envrc", ".run", "xxx/xxx.txt"],))
     def test_create_bkp_of_target_dir(self, targets):
         bkp_dir = TARGET_DIR / CONFGUARD_BKP_DIR
         f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
@@ -81,7 +79,7 @@ class TestFiles:
         (
             ["xxx/xxx.txt"],
             [".envrc", ".run", "xxx/xxx.txt"],
-        )
+        ),
     )
     def test_restore_bkp(self, targets):
         # given: backup created
@@ -113,7 +111,7 @@ class TestFiles:
             [".run"],
             [".envrc", ".run"],
             [".envrc", ".run", "xxx/xxx.txt"],
-        )
+        ),
     )
     def test_delete_bkp(self, targets):
         bkp_dir = Path.cwd() / CONFGUARD_BKP_DIR
@@ -137,7 +135,7 @@ class TestFiles:
             [".run"],
             [".envrc", ".run"],
             [".envrc", ".run", "xxx/xxx.txt"],
-        )
+        ),
     )
     def test_move_files(self, targets):
         f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
@@ -153,7 +151,7 @@ class TestFiles:
             ["xxx/xxx.txt"],
             [".envrc", ".run"],
             [".envrc", ".run", "xxx/xxx.txt"],
-        )
+        ),
     )
     def test_return_files(self, targets):
         # given
@@ -176,7 +174,7 @@ class TestLinks:
             ["xxx/xxx.txt"],
             [".envrc", ".run"],
             [".envrc", ".run", "xxx/xxx.txt"],
-        )
+        ),
     )
     def test_create_links(self, clear_test_proj, targets):
         lk = Links(source_dir=Path.cwd(), target_dir=TARGET_DIR, targets=targets)
@@ -186,10 +184,7 @@ class TestLinks:
             src_path = Path.cwd() / rel_path
             assert src_path.is_symlink()
 
-    @pytest.mark.parametrize(
-        "targets",
-        ([".envrc", ".run", "xxx/xxx.txt"],)
-    )
+    @pytest.mark.parametrize("targets", ([".envrc", ".run", "xxx/xxx.txt"],))
     def test_create_links(self, clear_test_proj, targets):
         lk = Links(source_dir=Path.cwd(), target_dir=TARGET_DIR, targets=targets)
         lk.create(is_relative=True)
@@ -198,10 +193,7 @@ class TestLinks:
             src_path = Path.cwd() / rel_path
             assert src_path.is_symlink()
 
-    @pytest.mark.parametrize(
-        "targets",
-        ([".envrc", ".run", "xxx/xxx.txt"],)
-    )
+    @pytest.mark.parametrize("targets", ([".envrc", ".run", "xxx/xxx.txt"],))
     def test_remove_links(self, clear_test_proj, targets):
         lk = Links(source_dir=Path.cwd(), target_dir=TARGET_DIR, targets=targets)
         lk.create()
@@ -211,11 +203,7 @@ class TestLinks:
             src_path = Path.cwd() / rel_path
             assert not src_path.exists()
 
-
-    @pytest.mark.parametrize(
-        "targets",
-        ([".envrc", ".run", "xxx/xxx.txt"],)
-    )
+    @pytest.mark.parametrize("targets", ([".envrc", ".run", "xxx/xxx.txt"],))
     def test_remove_non_existing_links(self, caplog, clear_test_proj, targets):
         caplog.set_level(logging.DEBUG)
         lk = Links(source_dir=Path.cwd(), target_dir=TARGET_DIR, targets=targets)
@@ -238,7 +226,9 @@ class TestLinks:
         # then
         assert Path(TARGET_DIR / f".{config.sentinel}.confguard").exists()
         assert Path(TARGET_DIR / f".{config.sentinel}.confguard").is_symlink()
-        assert Path(TARGET_DIR / f".{config.sentinel}.confguard").resolve() == Path.cwd()
+        assert (
+            Path(TARGET_DIR / f".{config.sentinel}.confguard").resolve() == Path.cwd()
+        )
 
     def test_back_remove(self, create_sentinel):
         # given

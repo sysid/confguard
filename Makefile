@@ -13,7 +13,7 @@ PYTEST	= pytest --log-level=debug --capture=tee-sys --asyncio-mode=auto
 PYTOPT	=
 VENV	= venv
 PIP		= venv/bin/pip
-PACKAGE = $confguard
+PACKAGE = confguard
 
 app_root = .
 app_root ?= .
@@ -39,7 +39,7 @@ coverage:  ## Run tests with coverage
 
 .PHONY: test
 test:  ## run tests
-	python -m pytest -ra --junitxml=report.xml --cov-config=setup.cfg --cov-report=xml --cov-report term --cov=$(pkg_src) -vv tests/
+	pushd tests/resources/test_proj &&  CONFGUARD_PATH=/tmp/confgruard python -m pytest -ra --junitxml=report.xml --cov-config=setup.cfg --cov-report=xml --cov-report term --cov=$(pkg_src) -vv tests/
 
 .PHONY: tox
 tox:   ## Run tox

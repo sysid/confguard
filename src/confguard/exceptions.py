@@ -15,4 +15,4 @@ class FileDoesNotExistError(ConfGuardError):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
-        self.target = kwargs.get('target')
+        self.target = kwargs.get("target")
