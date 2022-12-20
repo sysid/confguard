@@ -16,18 +16,47 @@ _log = logging.getLogger(__name__)
 
 class TestSentinel:
     def test_create(self):
-        Sentinel.create(TEST_PROJ)
+        Sentinel(source_dir=TEST_PROJ).create()
         assert config.sentinel is not None
 
     def test_create_sentinel_exists(self):
-        Sentinel.create(TEST_PROJ)
+        Sentinel(source_dir=TEST_PROJ).create()
         first = config.sentinel
-        Sentinel.create(TEST_PROJ)
+        Sentinel(source_dir=TEST_PROJ).create()
         assert config.sentinel == first
 
     def test_remove(self):
-        Sentinel.create(TEST_PROJ)
-        Sentinel.remove()
+        s = Sentinel(source_dir=TEST_PROJ)
+        s.create()
+        s.remove()
+        assert config.sentinel is None
+
+    def test_add_sentinel(self):
+        s = Sentinel(source_dir=TEST_PROJ)
+        s.confguard_add_sentinel("test-12345")
+        s.load_confguard()
+        assert config.confguard["_internal_"]["sentinel"] == "test-12345"
+        assert config.sentinel == "test-12345"
+
+    def test_update_sentinel(self):
+        # given
+        s = Sentinel(source_dir=TEST_PROJ)
+        s.confguard_add_sentinel("test-12345")
+
+        # when
+        s.confguard_update_sentinel("test-99999")
+        s.load_confguard()
+
+        # then
+        assert config.confguard["_internal_"]["sentinel"] == "test-99999"
+        assert config.sentinel == "test-99999"
+
+    def test_remove_sentinel(self):
+        s = Sentinel(source_dir=TEST_PROJ)
+        s.confguard_add_sentinel("test-12345")
+        s.confguard_remove_sentinel()
+        s.load_confguard()
+
         assert config.sentinel is None
 
 

@@ -3,21 +3,21 @@ from pathlib import Path
 
 import typer
 
-from confguard.environment import CONFGUARD_BKP_DIR, CONFIG_TEMPLATE, config
+from confguard.environment import CONFGUARD_BKP_DIR, config
 from confguard.services import Files, Links, Sentinel
 
 _log = logging.getLogger(__name__)
 app = typer.Typer(help="Save sensitive configuration in a save place")
 
 
-@app.command()
-def configure():
-    typer.edit(
-        CONFIG_TEMPLATE, filename=str(config.config_path)
-    )  # not working with pytest
-    typer.echo(f"Config file is: {config.config_path}\n")
-    with config.config_path.open("r") as f:
-        print(f.read())
+# @app.command()
+# def configure():
+#     typer.edit(
+#         CONFIG_TEMPLATE, filename=str(config.config_path)
+#     )  # not working with pytest
+#     typer.echo(f"Config file is: {config.config_path}\n")
+#     with config.config_path.open("r") as f:
+#         print(f.read())
 
 
 @app.command()
@@ -39,19 +39,13 @@ def guard(
 
 
 def _guard(source_dir: Path) -> None:
-    cfg = config.confguard.get("config")
-    if cfg is None:
-        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
-        return
-    targets = cfg.get("targets")
-    if cfg is None:
-        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
-        return
+    sentinel = Sentinel(source_dir=source_dir)
+    targets = _load_confguard_config(sentinel)
 
-    Sentinel.create(source_dir)
+    sentinel.create()
     bkp_dir = source_dir / CONFGUARD_BKP_DIR
     target_dir = config.confguard_path / config.sentinel
-    # backup as tx prerequisite
+
     files = Files(
         rel_target_dir=config.sentinel, source_dir=source_dir, targets=targets
     )
@@ -60,7 +54,7 @@ def _guard(source_dir: Path) -> None:
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
         files.delete_dir(dir_=bkp_dir)
-        Sentinel.remove()
+        sentinel.remove()
         raise typer.Exit(1)
 
     lks = Links(source_dir=source_dir, target_dir=target_dir, targets=targets)
@@ -76,6 +70,23 @@ def _guard(source_dir: Path) -> None:
         raise typer.Exit(1)
     finally:
         files.delete_dir(dir_=bkp_dir)
+
+
+def _load_confguard_config(sentinel):
+    try:
+        sentinel.load_confguard()
+    except Exception as e:
+        typer.secho(f"Error loading configuration: {e}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    cfg = config.confguard.get("config")
+    if cfg is None:
+        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    targets = cfg.get("targets")
+    if targets is None:
+        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    return targets
 
 
 @app.command()
@@ -95,18 +106,14 @@ def unguard(
 
 
 def _unguard(source_dir: Path) -> None:
-    cfg = config.confguard.get("config")
-    if cfg is None:
-        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
-        return
-    targets = cfg.get("targets")
-    if cfg is None:
-        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
-        return
+    sentinel = Sentinel(source_dir=source_dir)
+    targets = _load_confguard_config(sentinel)
 
     assert config.sentinel is not None, f"Sentinel not set: {config.sentinel=}"
+
     target_dir = config.confguard_path / config.sentinel
     bkp_dir = config.confguard_path / config.sentinel / CONFGUARD_BKP_DIR
+
     files = Files(
         rel_target_dir=config.sentinel, source_dir=source_dir, targets=targets
     )
@@ -115,7 +122,7 @@ def _unguard(source_dir: Path) -> None:
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
         files.delete_dir(dir_=bkp_dir)
-        Sentinel.remove()
+        Sentinel(source_dir=source_dir).remove()
         raise typer.Exit(1)
 
     lks = Links(source_dir=source_dir, target_dir=target_dir, targets=targets)

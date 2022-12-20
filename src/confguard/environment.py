@@ -3,19 +3,17 @@
 ################################################################################
 import os
 import sys
-import tomllib
-from enum import Enum
 from pathlib import Path
 
 import pydantic
-import tomlkit
 import typer
 from pydantic import BaseSettings
-from tomlkit import TOMLDocument, comment, nl, table
+from tomlkit import TOMLDocument
 
 RUN_ENVS = ["local", "dev"]
 ROOT_DIR = Path(__file__).parent.parent.parent.absolute()
 FINGERPRINT = ".*.confguard"  # identifier for sentinel files
+CONFGUARD_CONFIG_FILE = ".confguard"
 CONFGUARD_BKP_DIR = ".confguard.bkp"
 
 RUN_ENV = os.environ.get("RUN_ENV", "local").lower()
@@ -34,19 +32,11 @@ class Environment(BaseSettings):
     twbm_db_url: str = "sqlite:///db/bm.db"
     confguard_path: Path
     confguard: TOMLDocument = {}
-    config_path: Path = Path(".confguard")
 
     # init
     def __init__(self, **data):
         super().__init__(**data)
-
         Path(self.confguard_path).mkdir(parents=True, exist_ok=True)
-
-        # if not self.config_path.is_file():
-        #     with open(self.config_path, "w") as textfile:
-        #         print(CONFIG_TEMPLATE, file=textfile)
-
-        # self.load_confguard()
 
     @property
     def dbfile(self):
@@ -58,31 +48,6 @@ class Environment(BaseSettings):
             return self.confguard["_internal_"]["sentinel"]
         except KeyError:
             return None
-
-    def load_confguard(self):
-        with open(self.config_path, mode="rt", encoding="utf-8") as fp:
-            self.confguard = tomlkit.load(fp)
-
-    def confguard_update_sentinel(self, sentinel: str) -> None:
-        self.confguard["_internal_"]["sentinel"] = sentinel
-        self._save_confguard()
-
-    def confguard_remove_sentinel(self) -> None:
-        del self.confguard["_internal_"]["sentinel"]
-        del self.confguard["_internal_"]
-        self._save_confguard()
-
-    def confguard_add_sentinel(self, sentinel: str) -> None:
-        # self.confguard.add(nl)
-        tab = table()
-        tab.add("sentinel", sentinel)
-        self.confguard["_internal_"] = tab
-        self.confguard["_internal_"].comment("DO NOT EDIT FROM HERE")
-        self._save_confguard()
-
-    def _save_confguard(self):
-        with open(self.config_path, mode="wt", encoding="utf-8") as fp:
-            tomlkit.dump(self.confguard, fp)
 
     def log_config(self) -> dict:
         cfg = self.dict()

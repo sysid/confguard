@@ -3,44 +3,75 @@ import os
 import shutil
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 
-from confguard.environment import CONFGUARD_BKP_DIR, FINGERPRINT, config
+import tomlkit
+from tomlkit import table
+
+from confguard.environment import config, CONFGUARD_CONFIG_FILE
 from confguard.exceptions import (
     BackupExistError,
     BackupNotDeleted,
-    FileDoesNotExistError,
 )
 
 _log = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=False, kw_only=True)
 class Sentinel:
     """
     Delegates sentinel management to environment class
     """
+    source_dir: Path
+    config_path: Path = field(init=False)
 
-    @staticmethod
-    def create(source_dir: Path) -> None:
+    # init
+    def __post_init__(self):
+        self.config_path = self.source_dir / CONFGUARD_CONFIG_FILE
+
+    def create(self) -> None:
         if config.sentinel is not None:
             _log.debug(f"Sentinel already exists: {config.sentinel=}")
             return
 
         try:
-            p = source_dir.parts[-1]  # get proj dir as part of sentinel filename
+            p = self.source_dir.parts[-1]  # get proj dir as part of sentinel filename
         except IndexError:
             p = "unknown-dir"
 
         sentinel = f"{p}-{uuid.uuid4().hex[:8]}"
-        config.confguard_add_sentinel(sentinel)
+        self.confguard_add_sentinel(sentinel)
         _log.debug(f"Sentinel created: {config.sentinel=}")
 
-    @staticmethod
-    def remove() -> None:
-        config.confguard_remove_sentinel()
+    def confguard_add_sentinel(self, sentinel: str) -> None:
+        # self.confguard.add(nl)
+        tab = table()
+        tab.add("sentinel", sentinel)
+        config.confguard["_internal_"] = tab
+        config.confguard["_internal_"].comment("DO NOT EDIT FROM HERE")
+        self._save_confguard()
+
+    def remove(self) -> None:
+        self.confguard_remove_sentinel()
         _log.debug(f"Sentinel removed: {config.sentinel=}")
+
+    def load_confguard(self):
+        with open(self.config_path, mode="rt", encoding="utf-8") as fp:
+            config.confguard = tomlkit.load(fp)
+
+    def confguard_update_sentinel(self, sentinel: str) -> None:
+        config.confguard["_internal_"]["sentinel"] = sentinel
+        self._save_confguard()
+
+    def confguard_remove_sentinel(self) -> None:
+        del config.confguard["_internal_"]["sentinel"]
+        del config.confguard["_internal_"]
+        self._save_confguard()
+
+    def _save_confguard(self):
+        config_path = self.source_dir / CONFGUARD_CONFIG_FILE
+        with open(config_path, mode="wt", encoding="utf-8") as fp:
+            tomlkit.dump(config.confguard, fp)
 
 
 @dataclass(frozen=False, kw_only=True)
@@ -175,7 +206,7 @@ class Links:
 
     def remove(self) -> None:
         for rel_path in self.targets:
-            tgt_path = self.target_dir / rel_path
+            # tgt_path = self.target_dir / rel_path
             src_path = self.source_dir / rel_path
 
             if src_path.exists():
