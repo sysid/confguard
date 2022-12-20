@@ -39,7 +39,7 @@ coverage:  ## Run tests with coverage
 
 .PHONY: test
 test: test-proj  ## run tests
-	CONFGUARD_PATH=/tmp/confgruard python -m pytest -ra --junitxml=report.xml --cov-config=setup.cfg --cov-report=xml --cov-report term --cov=$(pkg_src) -vv tests/
+	CONFGUARD_PATH=/private/tmp/confguard python -m pytest -ra --junitxml=report.xml --cov-config=setup.cfg --cov-report=xml --cov-report term --cov=$(pkg_src) -vv tests/
 
 .PHONY: tox
 tox:   ## Run tox

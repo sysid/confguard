@@ -10,37 +10,51 @@ _log = logging.getLogger(__name__)
 app = typer.Typer(help="Save sensitive configuration in a save place")
 
 
-# @app.command()
-# def configure():
-#     typer.edit(
-#         CONFIG_TEMPLATE, filename=str(config.config_path)
-#     )  # not working with pytest
-#     typer.echo(f"Config file is: {config.config_path}\n")
-#     with config.config_path.open("r") as f:
-#         print(f.read())
+def _load_confguard_config(sentinel):
+    try:
+        sentinel.load_confguard()
+        _log.debug(config.confguard)
+    except Exception as e:
+        typer.secho(f"Error loading configuration: {e}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    cfg = config.confguard.get("config")
+    if cfg is None:
+        typer.secho("Invalid config, check '.confguard' format. (config section)", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    targets = cfg.get("targets")
+    if targets is None:
+        typer.secho("Invalid config, check '.confguard' format. (no targets)", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    return targets
 
 
 @app.command()
 def guard(
-    # path argument
     source_dir: Path = typer.Argument(
         ..., help="Path to the directory to guard", exists=True
     ),
 ):
-    """
-    looks in the current directory for a .confguard file
-    take current directory as source
+    """ Guards a directory.
+    Configuration: `.confguard` in project directory
 
     CAVEAT: relative linking cannot span mounts, absolute linking can
     """
     source_dir = Path(source_dir).expanduser().resolve()
-    _log.info(f"Guarding {source_dir=}")
     _guard(source_dir)
 
 
 def _guard(source_dir: Path) -> None:
     sentinel = Sentinel(source_dir=source_dir)
     targets = _load_confguard_config(sentinel)
+
+    if config.sentinel is not None:
+        typer.secho(
+            f"Project is already guarded: {config.sentinel=}, unguard first.",
+            fg=typer.colors.GREEN,
+        )
+        raise typer.Exit(1)
+
+    _log.info(f"Guarding {source_dir=}")
 
     sentinel.create()
     bkp_dir = source_dir / CONFGUARD_BKP_DIR
@@ -72,23 +86,6 @@ def _guard(source_dir: Path) -> None:
         files.delete_dir(dir_=bkp_dir)
 
 
-def _load_confguard_config(sentinel):
-    try:
-        sentinel.load_confguard()
-    except Exception as e:
-        typer.secho(f"Error loading configuration: {e}", fg=typer.colors.RED)
-        raise typer.Exit(1)
-    cfg = config.confguard.get("config")
-    if cfg is None:
-        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
-        raise typer.Exit(1)
-    targets = cfg.get("targets")
-    if targets is None:
-        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
-        raise typer.Exit(1)
-    return targets
-
-
 @app.command()
 def unguard(
     # path argument
@@ -96,12 +93,10 @@ def unguard(
         ..., help="Path to the directory to guard", exists=True
     ),
 ):
-    """unguard
-    looks in the current directory for a .confguard file
-    reverts changes made by `guard
+    """ Un-guards a directory.
+    Revert changes made by `guard`.
     """
     source_dir = Path(source_dir).expanduser().resolve()
-    _log.info(f"Guarding {source_dir=}")
     _unguard(source_dir)
 
 
@@ -109,7 +104,15 @@ def _unguard(source_dir: Path) -> None:
     sentinel = Sentinel(source_dir=source_dir)
     targets = _load_confguard_config(sentinel)
 
-    assert config.sentinel is not None, f"Sentinel not set: {config.sentinel=}"
+    if config.sentinel is None:
+        typer.secho(
+            f"Project is un-guarded: {config.sentinel=}, nothing to do.",
+            fg=typer.colors.GREEN,
+        )
+        raise typer.Exit(1)
+    _log.info(f"Un-guarding {source_dir=}")
+
+    _sentinel = config.sentinel  # save sentinel for rollback (TODO)
 
     target_dir = config.confguard_path / config.sentinel
     bkp_dir = config.confguard_path / config.sentinel / CONFGUARD_BKP_DIR
@@ -130,6 +133,7 @@ def _unguard(source_dir: Path) -> None:
         lks.remove()
         lks.back_remove()
         files.return_files(source_dir=source_dir, target_dir=target_dir)
+        sentinel.remove()  # TODO: tx safety (should be recreated if rollback)
     except Exception as e:
         typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
         files.restore_bkp(source_dir=target_dir, bkp_dir=bkp_dir)

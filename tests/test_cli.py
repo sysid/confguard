@@ -56,14 +56,8 @@ def test__guard():
     assert (TEST_PROJ / "xxx/xxx.txt").is_symlink()
 
     # then: the links point to the confguard directory replacements
-    fixed_tmp_path = str(Path(TEST_PROJ / ".envrc").resolve()).replace(
-        "/private", ""
-    )  # macos fix
-    assert Path(fixed_tmp_path).resolve() == Path(confguard / ".envrc")
-    fixed_tmp_path = str(Path(TEST_PROJ / ".run").resolve()).replace(
-        "/private", ""
-    )  # macos fix
-    assert Path(fixed_tmp_path).resolve() == Path(confguard / ".run")
+    assert Path(TEST_PROJ / ".envrc").resolve() == Path(confguard / ".envrc")
+    assert Path(TEST_PROJ / ".run").resolve() == Path(confguard / ".run")
 
     # then backlink created
     assert Path(confguard / f".{config.sentinel}.confguard").resolve() == TEST_PROJ
@@ -83,3 +77,4 @@ def test__unguard():
     assert (TEST_PROJ / ".envrc").is_file()
     assert (TEST_PROJ / ".run").is_dir()
     assert (TEST_PROJ / "xxx/xxx.txt").is_file()
+    assert config.sentinel is None

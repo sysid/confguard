@@ -58,20 +58,24 @@ class Sentinel:
     def load_confguard(self):
         with open(self.config_path, mode="rt", encoding="utf-8") as fp:
             config.confguard = tomlkit.load(fp)
+        _log.debug(f"Loaded confguard config: {self.config_path=}")
 
     def confguard_update_sentinel(self, sentinel: str) -> None:
         config.confguard["_internal_"]["sentinel"] = sentinel
         self._save_confguard()
+        _log.debug(f"Updated sentinel in confguard config: {self.config_path=}")
 
     def confguard_remove_sentinel(self) -> None:
         del config.confguard["_internal_"]["sentinel"]
         del config.confguard["_internal_"]
         self._save_confguard()
+        _log.debug(f"Removed sentinel from confguard config: {self.config_path=}")
 
     def _save_confguard(self):
         config_path = self.source_dir / CONFGUARD_CONFIG_FILE
         with open(config_path, mode="wt", encoding="utf-8") as fp:
             tomlkit.dump(config.confguard, fp)
+        _log.debug(f"Saved config confguard: {config_path=}")
 
 
 @dataclass(frozen=False, kw_only=True)
