@@ -46,12 +46,49 @@ def _guard() -> None:
         typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
         return
 
-    bkp_dir = Path.cwd() / CONFGUARD_BKP_DIR
-    # backup as tx prerequisite
     Sentinel.create()
+    bkp_dir = Path.cwd() / CONFGUARD_BKP_DIR
+    target_dir = config.confguard_path / config.sentinel
+    # backup as tx prerequisite
     files = Files(rel_target_dir=config.sentinel, source_dir=Path.cwd(), targets=targets)
     try:
         files.create_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
+    except Exception as e:
+        typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
+        files.delete_dir(dir_=bkp_dir)
+        Sentinel.remove()
+        raise typer.Exit(1)
+
+    lks = Links(source_locations=files.source_locations, target_locations=files.target_locations)
+    try:
+        files.move_files(source_dir=Path.cwd(), target_dir=target_dir)
+        lks.create()
+        lks.back_create()
+    except Exception as e:
+        typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
+        lks.remove()
+        lks.back_remove()
+        files.restore_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
+        raise typer.Exit(1)
+    finally:
+        files.delete_dir(dir_=bkp_dir)
+
+
+def _unguard() -> None:
+    assert config.sentinel is not None, f"Sentinel not set: {config.sentinel=}"
+    cfg = config.confguard.get("config")
+    if cfg is None:
+        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
+        return
+    targets = cfg.get("targets")
+    if cfg is None:
+        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
+        return
+
+    bkp_dir = config.confguard_path / config.sentinel / CONFGUARD_BKP_DIR
+    files = Files(rel_target_dir=config.sentinel, source_dir=Path.cwd(), targets=targets)
+    try:
+        files.create_bkp(source_dir=config.confguard_path / config.sentinel, bkp_dir=bkp_dir)
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
         files.delete_dir(dir_=bkp_dir)
@@ -72,25 +109,6 @@ def _guard() -> None:
     finally:
         files.delete_dir(dir_=bkp_dir)
 
-
-def _unguard() -> None:
-    cfg = config.confguard.get("config")
-    if cfg is None:
-        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
-        return
-    targets = cfg.get("targets")
-    if cfg is None:
-        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
-        return
-
-    files = Files(rel_target_dir=config.sentinel, source_dir=Path.cwd(), targets=targets)
-    try:
-        files.create_bkp()
-    except Exception as e:
-        typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
-        files.delete_dir()
-        Sentinel.remove()
-        raise typer.Exit(1)
 
 @app.command()
 def check_source(source: str, verbose: bool = False):

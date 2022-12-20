@@ -53,39 +53,32 @@ class Files:
     # init
     def __post_init__(self):
         self.target_dir = config.confguard_path / self.rel_target_dir
-        # self.bkp_dir = self.source_dir / CONFGUARD_BKP_DIR
 
-    def move_files(self) -> None:
-        Path(self.target_dir).mkdir(parents=True, exist_ok=True)
+    def move_files(self, source_dir: Path, target_dir: Path) -> None:
+        Path(target_dir).mkdir(parents=True, exist_ok=True)
 
         for rel_path in self.targets:
             rel_path = Path(rel_path)
-            target_path = self.target_dir / rel_path
-            src_path = self.source_dir / rel_path
-            if rel_path.exists():
+            tgt_path = target_dir / rel_path
+            src_path = source_dir / rel_path
 
-                _log.debug(f"Moving {rel_path} to {target_path}")
-                target_path.parent.exists() or target_path.parent.mkdir(parents=True)
-                rel_path.rename(target_path)
-                self.source_locations.append(src_path)
-                self.target_locations.append(target_path)
+            if src_path.exists():
+                _log.debug(f"Moving {src_path} to {tgt_path}")
+                tgt_path.parent.exists() or tgt_path.parent.mkdir(parents=True)
+                src_path.rename(tgt_path)
+                if source_dir == Path.cwd():
+                    self.source_locations.append(src_path)
+                    self.target_locations.append(tgt_path)
             else:
-                _log.warning(f"File {rel_path=} does not exist")
+                _log.warning(f"File {src_path=} does not exist")
 
-    def return_files(self) -> None:
-        for target_location in self.target_locations:
-            _log.debug(f"Moving {target_location} to {self.source_dir}")
-            for target in self.targets:
-                if target == str(target_location)[-len(target):]:
-                    target_location.rename(self.source_dir / target)
-                    break
-        self.target_locations = []
-
+    def return_files(self, source_dir: Path, target_dir: Path) -> None:
+        self.move_files(target_dir, source_dir)
         # check target dir only contains empty directories, use pathlib
-        for p in self.target_dir.glob("**/*"):
+        for p in target_dir.glob("**/*"):
             if p.is_file():
-                raise Exception(f"Target dir {self.target_dir} is not empty. Will not delete it.")
-        shutil.rmtree(self.target_dir)
+                raise Exception(f"Target dir {target_dir} is not empty. Will not delete it.")
+        shutil.rmtree(target_dir)
 
     def create_bkp(self, source_dir: Path, bkp_dir: Path) -> None:
         try:

@@ -67,7 +67,7 @@ class TestFiles:
     def test_create_bkp_of_target_dir(self, targets):
         bkp_dir = TARGET_DIR / CONFGUARD_BKP_DIR
         f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
-        f.move_files()
+        f.move_files(source_dir=Path.cwd(), target_dir=TARGET_DIR)
 
         f.create_bkp(source_dir=TARGET_DIR, bkp_dir=bkp_dir)
 
@@ -141,7 +141,7 @@ class TestFiles:
     )
     def test_move_files(self, targets):
         f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
-        f.move_files()
+        f.move_files(source_dir=Path.cwd(), target_dir=TARGET_DIR)
         for t in targets:
             assert Path(config.confguard_path / SENTINEL / t).exists()
             assert not Path(f.source_dir / t).exists()
@@ -158,9 +158,9 @@ class TestFiles:
     def test_return_files(self, targets):
         # given
         f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
-        f.move_files()
+        f.move_files(source_dir=Path.cwd(), target_dir=TARGET_DIR)
         # when
-        f.return_files()
+        f.return_files(source_dir=Path.cwd(), target_dir=TARGET_DIR)
         # then all files exist at their source destination again
         for t in targets:
             assert Path(f.source_dir / t).exists()
