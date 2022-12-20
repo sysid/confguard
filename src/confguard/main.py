@@ -46,6 +46,7 @@ def _guard() -> None:
         typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
         return
 
+    # backup as tx prerequisite
     Sentinel.create()
     files = Files(rel_target_dir=config.sentinel, source_dir=Path.cwd(), targets=targets)
     try:
@@ -60,9 +61,11 @@ def _guard() -> None:
     try:
         files.move_files()
         lks.create()
+        lks.back_create()
     except Exception as e:
         typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
         lks.remove()
+        lks.back_remove()
         files.restore_bkp()
         raise typer.Exit(1)
     finally:

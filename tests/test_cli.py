@@ -54,3 +54,7 @@ def test__guard():
     assert Path(fixed_tmp_path).resolve() == Path(confguard / ".envrc")
     fixed_tmp_path = str(Path(test_proj / ".run").resolve()).replace("/private", "")  # macos fix
     assert Path(fixed_tmp_path).resolve() == Path(confguard / ".run")
+
+    # then backlink created
+    assert Path(confguard / f".{config.sentinel}.confguard").resolve() == Path.cwd()
+

@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from tomlkit import table
 
 from confguard.environment import ROOT_DIR, config, CONFGUARD_BKP_DIR
 
@@ -13,6 +14,10 @@ logging.basicConfig(format=log_fmt, level=logging.DEBUG, datefmt=None)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 logging.getLogger("paramiko").setLevel(logging.INFO)
+
+PYTHON_TARGETS = [".envrc", ".run", "xxx/xxx.txt"]
+REL_TARGET_DIR = Path("test_proj-1234")
+TARGET_DIR = config.confguard_path / REL_TARGET_DIR
 
 
 # run fixture before all tests
@@ -54,3 +59,14 @@ def clear_test_proj():
     Path(test_proj / ".run").unlink(missing_ok=True)  # will be linked
     Path(test_proj / ".envrc").unlink(missing_ok=True)  # will be linked
     Path(test_proj / "xxx/xxx.txt").unlink(missing_ok=True)  # will be linked
+
+
+@pytest.fixture(autouse=False)
+def create_sentinel():
+    tab = table()
+    tab.add("sentinel", str(REL_TARGET_DIR))
+    config.confguard["_internal_"] = tab
+    config.confguard["_internal_"].comment("DO NOT EDIT FROM HERE")
+    # noinspection PyProtectedMember
+    config._save_confguard()
+    Path(TARGET_DIR).mkdir(parents=True, exist_ok=True)

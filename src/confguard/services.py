@@ -188,4 +188,21 @@ class Links:
     def remove(self) -> None:
         for link in self.source_locations:
             _log.debug(f"Removing link {link}")
-            Path(link).unlink(missing_ok=True)
+            link.unlink(missing_ok=True)
+
+    @staticmethod
+    def back_create(is_relative: bool = False) -> None:
+        target = Path.cwd()  # / config.config_path
+        source = config.confguard_path / config.sentinel / f".{config.sentinel}.confguard"
+
+        if is_relative:
+            target = _create_relative_path(str(source), str(target))
+
+        _log.debug(f"Creating link {source} to {target}")
+        source.symlink_to(target)
+
+    @staticmethod
+    def back_remove():
+        source = config.confguard_path / config.sentinel / f".{config.sentinel}.confguard"
+        _log.debug(f"Removing link {source}")
+        source.unlink(missing_ok=True)
