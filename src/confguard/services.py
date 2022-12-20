@@ -74,10 +74,6 @@ class Files:
 
     def return_files(self, source_dir: Path, target_dir: Path) -> None:
         self.move_files(target_dir, source_dir)
-        # check target dir only contains empty directories, use pathlib
-        for p in target_dir.glob("**/*"):
-            if p.is_file():
-                raise Exception(f"Target dir {target_dir} is not empty. Will not delete it.")
         shutil.rmtree(target_dir)
 
     def create_bkp(self, source_dir: Path, bkp_dir: Path) -> None:
@@ -153,34 +149,39 @@ def _create_relative_path(source: str, target: str) -> Path:
 
 @dataclass(frozen=True, kw_only=True)
 class Links:
-    source_locations: list[Path] = field(default_factory=list)
-    target_locations: list[Path] = field(default_factory=list)
-    links: list[str] = field(default_factory=list)
+    targets: list[str]
+    source_dir: Path
+    target_dir: Path
 
     def create(self, is_relative: bool = False) -> None:
-        assert len(self.source_locations) == len(self.target_locations), \
-            f"Source and target locations must be the same size, {self.source_locations=}, {self.target_locations=}"
-        for source, target in zip(self.source_locations, self.target_locations):
+        for rel_path in self.targets:
+            tgt_path = self.target_dir / rel_path
+            src_path = self.source_dir / rel_path
 
             if is_relative:
-                target = _create_relative_path(str(source), str(target))
+                tgt_path = _create_relative_path(str(src_path), str(tgt_path))
 
-            _log.debug(f"Creating link {source} to {target}")
-            source.symlink_to(target)
-            self.links.append(str(target))
+            _log.debug(f"Creating link {src_path} to {tgt_path}")
+            src_path.symlink_to(tgt_path)
             _ = None
 
-        _log.debug(f"{self.links=}")
-
     def remove(self) -> None:
-        for link in self.source_locations:
-            _log.debug(f"Removing link {link}")
-            link.unlink(missing_ok=True)
+        for rel_path in self.targets:
+            tgt_path = self.target_dir / rel_path
+            src_path = self.source_dir / rel_path
 
-    @staticmethod
-    def back_create(is_relative: bool = False) -> None:
-        target = Path.cwd()  # / config.config_path
-        source = config.confguard_path / config.sentinel / f".{config.sentinel}.confguard"
+            if src_path.exists():
+                if src_path.is_symlink():
+                    _log.debug(f"Removing link {src_path}")
+                    src_path.unlink(missing_ok=True)
+                else:
+                    _log.warning(f"File {src_path=} is not a symlink. Skipping removal.")
+            else:
+                _log.warning(f"{src_path} does not exist")
+
+    def back_create(self, is_relative: bool = False) -> None:
+        target = self.source_dir
+        source = self.target_dir / f".{config.sentinel}.confguard"
 
         if is_relative:
             target = _create_relative_path(str(source), str(target))
@@ -188,8 +189,7 @@ class Links:
         _log.debug(f"Creating link {source} to {target}")
         source.symlink_to(target)
 
-    @staticmethod
-    def back_remove():
-        source = config.confguard_path / config.sentinel / f".{config.sentinel}.confguard"
+    def back_remove(self):
+        source = self.target_dir / f".{config.sentinel}.confguard"
         _log.debug(f"Removing link {source}")
         source.unlink(missing_ok=True)

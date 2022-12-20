@@ -71,6 +71,6 @@ def test__unguard():
     # then confguard directory is gone
     assert not confguard.exists()
     # then source directory has got the original files back
-    assert (confguard / ".envrc").is_file()
-    assert (confguard / ".run").is_dir()
-    assert (confguard / "xxx/xxx.txt").is_file()
+    assert (test_proj / ".envrc").is_file()
+    assert (test_proj / ".run").is_dir()
+    assert (test_proj / "xxx/xxx.txt").is_file()

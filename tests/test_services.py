@@ -171,66 +171,68 @@ class TestFiles:
 
 class TestLinks:
     @pytest.mark.parametrize(
-        "source_locations, target_locations",
+        "targets",
         (
-            ([Path.cwd() / "xxx/xxx.txt"], [TARGET_DIR / 'xxx/xxx.txt']),
-            ([Path.cwd() / ".envrc"], [TARGET_DIR / '.envrc']),
-            ([Path.cwd() / ".envrc", Path.cwd() / ".run"], [TARGET_DIR / '.envrc', TARGET_DIR / '.run']),
+            ["xxx/xxx.txt"],
+            [".envrc", ".run"],
+            [".envrc", ".run", "xxx/xxx.txt"],
         )
     )
-    def test_create_links(self, clear_test_proj, source_locations, target_locations):
-        lk = Links(source_locations=source_locations, target_locations=target_locations)
+    def test_create_links(self, clear_test_proj, targets):
+        lk = Links(source_dir=Path.cwd(), target_dir=TARGET_DIR, targets=targets)
         lk.create()
-        for lk in source_locations:
-            assert Path(lk).is_symlink()
+        for rel_path in targets:
+            tgt_path = TARGET_DIR / rel_path
+            src_path = Path.cwd() / rel_path
+            assert src_path.is_symlink()
 
     @pytest.mark.parametrize(
-        "source_locations, target_locations",
-        (
-            ([Path.cwd() / "xxx/xxx.txt"], [TARGET_DIR / 'xxx/xxx.txt']),
-            ([Path.cwd() / ".envrc"], [TARGET_DIR / '.envrc']),
-            ([Path.cwd() / ".envrc", Path.cwd() / ".run"], [TARGET_DIR / '.envrc', TARGET_DIR / '.run']),
-        )
+        "targets",
+        ([".envrc", ".run", "xxx/xxx.txt"],)
     )
-    def test_create_rel_links(self, clear_test_proj, source_locations, target_locations):
-        lk = Links(source_locations=source_locations, target_locations=target_locations)
+    def test_create_links(self, clear_test_proj, targets):
+        lk = Links(source_dir=Path.cwd(), target_dir=TARGET_DIR, targets=targets)
         lk.create(is_relative=True)
-        for lk in source_locations:
-            assert Path(lk).is_symlink()
+        for rel_path in targets:
+            tgt_path = TARGET_DIR / rel_path
+            src_path = Path.cwd() / rel_path
+            assert src_path.is_symlink()
 
     @pytest.mark.parametrize(
-        "source_locations, target_locations",
-        (
-            ([Path.cwd() / "xxx/xxx.txt"], [TARGET_DIR / 'xxx/xxx.txt']),
-            ([Path.cwd() / ".envrc"], [TARGET_DIR / '.envrc']),
-            ([Path.cwd() / ".envrc", Path.cwd() / ".run"], [TARGET_DIR / '.envrc', TARGET_DIR / '.run']),
-        )
+        "targets",
+        ([".envrc", ".run", "xxx/xxx.txt"],)
     )
-    def test_remove_links(self, clear_test_proj, source_locations, target_locations):
-        lk = Links(source_locations=source_locations, target_locations=target_locations)
+    def test_remove_links(self, clear_test_proj, targets):
+        lk = Links(source_dir=Path.cwd(), target_dir=TARGET_DIR, targets=targets)
         lk.create()
 
         lk.remove()
-        for lk in source_locations:
-            assert not Path(lk).exists()
+        for rel_path in targets:
+            src_path = Path.cwd() / rel_path
+            assert not src_path.exists()
+
 
     @pytest.mark.parametrize(
-        "source_locations, target_locations",
-        (
-            ([Path.cwd() / ".envrc"], [TARGET_DIR / '.envrc']),
-        )
+        "targets",
+        ([".envrc", ".run", "xxx/xxx.txt"],)
     )
-    def test_remove_nonexisting_links(self, clear_test_proj, source_locations, target_locations):
-        lk = Links(source_locations=source_locations, target_locations=target_locations)
+    def test_remove_non_existing_links(self, caplog, clear_test_proj, targets):
+        caplog.set_level(logging.DEBUG)
+        lk = Links(source_dir=Path.cwd(), target_dir=TARGET_DIR, targets=targets)
         lk.create()
-        Path(source_locations[0]).unlink()
         lk.remove()
-        for lk in source_locations:
-            assert not Path(lk).exists()
+
+        # when: remove non existing links
+        lk.remove()
+        # then: no error
+        for rel_path in targets:
+            src_path = Path.cwd() / rel_path
+            assert not src_path.exists()
+            assert f"{str(src_path)} does not exist" in caplog.text
 
     def test_back_create(self, create_sentinel):
         # given
-        lk = Links(source_locations=[], target_locations=[])
+        lk = Links(source_dir=Path.cwd(), target_dir=TARGET_DIR, targets=[])
         # when
         lk.back_create()
         # then
@@ -240,7 +242,7 @@ class TestLinks:
 
     def test_back_remove(self, create_sentinel):
         # given
-        lk = Links(source_locations=[], target_locations=[])
+        lk = Links(source_dir=Path.cwd(), target_dir=TARGET_DIR, targets=[])
         lk.back_create()
         # when
         lk.back_remove()

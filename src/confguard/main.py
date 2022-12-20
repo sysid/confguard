@@ -59,7 +59,7 @@ def _guard() -> None:
         Sentinel.remove()
         raise typer.Exit(1)
 
-    lks = Links(source_locations=files.source_locations, target_locations=files.target_locations)
+    lks = Links(source_dir=Path.cwd(), target_dir=target_dir, targets=targets)
     try:
         files.move_files(source_dir=Path.cwd(), target_dir=target_dir)
         lks.create()
@@ -75,7 +75,6 @@ def _guard() -> None:
 
 
 def _unguard() -> None:
-    assert config.sentinel is not None, f"Sentinel not set: {config.sentinel=}"
     cfg = config.confguard.get("config")
     if cfg is None:
         typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
@@ -85,26 +84,29 @@ def _unguard() -> None:
         typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
         return
 
+    assert config.sentinel is not None, f"Sentinel not set: {config.sentinel=}"
+    target_dir = config.confguard_path / config.sentinel
     bkp_dir = config.confguard_path / config.sentinel / CONFGUARD_BKP_DIR
     files = Files(rel_target_dir=config.sentinel, source_dir=Path.cwd(), targets=targets)
     try:
-        files.create_bkp(source_dir=config.confguard_path / config.sentinel, bkp_dir=bkp_dir)
+        files.create_bkp(source_dir=target_dir, bkp_dir=bkp_dir)
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
         files.delete_dir(dir_=bkp_dir)
         Sentinel.remove()
         raise typer.Exit(1)
 
-    lks = Links(source_locations=files.source_locations, target_locations=files.target_locations)
+    lks = Links(source_dir=Path.cwd(), target_dir=target_dir, targets=targets)
     try:
-        files.move_files()
-        lks.create()
-        lks.back_create()
-    except Exception as e:
-        typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
         lks.remove()
         lks.back_remove()
-        files.restore_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
+        files.return_files(source_dir=Path.cwd(), target_dir=target_dir)
+    except Exception as e:
+        typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
+        files.restore_bkp(source_dir=target_dir, bkp_dir=bkp_dir)
+        typer.secho(f"Restoring links.")
+        lks.create()
+        lks.back_create()
         raise typer.Exit(1)
     finally:
         files.delete_dir(dir_=bkp_dir)
