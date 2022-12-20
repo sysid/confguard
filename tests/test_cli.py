@@ -6,7 +6,7 @@ import typer
 from typer.testing import CliRunner
 
 from confguard.environment import config, ROOT_DIR
-from confguard.main import app, _guard
+from confguard.main import app, _guard, _unguard
 
 runner = CliRunner()
 
@@ -58,3 +58,19 @@ def test__guard():
     # then backlink created
     assert Path(confguard / f".{config.sentinel}.confguard").resolve() == Path.cwd()
 
+
+def test__unguard():
+    # given
+    test_proj = ROOT_DIR / "tests/resources/test_proj"
+    _guard()
+    confguard = list(Path(config.confguard_path).glob("**/test_proj-*"))[0]
+
+    # when
+    _unguard()
+
+    # then confguard directory is gone
+    assert not confguard.exists()
+    # then source directory has got the original files back
+    assert (confguard / ".envrc").is_file()
+    assert (confguard / ".run").is_dir()
+    assert (confguard / "xxx/xxx.txt").is_file()

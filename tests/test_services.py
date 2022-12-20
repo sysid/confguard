@@ -4,11 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from confguard.environment import config, ROOT_DIR
+from confguard.environment import config, ROOT_DIR, CONFGUARD_BKP_DIR
 from confguard.exceptions import BackupExistError
 # noinspection PyProtectedMember
 from confguard.services import Sentinel, Files, Links
-from tests.conftest import REL_TARGET_DIR, TARGET_DIR
+from tests.conftest import SENTINEL, TARGET_DIR
 
 _log = logging.getLogger(__name__)
 
@@ -42,21 +42,39 @@ class TestFiles:
         )
     )
     def test_create_bkp(self, targets):
-        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=targets)
-        f.create_bkp()
+        bkp_dir = Path.cwd() / CONFGUARD_BKP_DIR
+        f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
+        f.create_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
 
-        assert f.bkp_dir.exists()
-        assert len(list(f.bkp_dir.glob("*"))) == len(targets)
+        assert bkp_dir.exists()
+        assert len(list(bkp_dir.glob("*"))) == len(targets)
         for target in targets:
-            assert (f.bkp_dir / target).exists()
+            assert (bkp_dir / target).exists()
 
     @pytest.mark.parametrize("targets", ([".envrc"],))
     def test_create_bkp_but_bkp_dir_exists(self, targets):
-        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=targets)
-        f.create_bkp()
+        bkp_dir = Path.cwd() / CONFGUARD_BKP_DIR
+        f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
+        f.create_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
 
         with pytest.raises(BackupExistError) as e:
-            f.create_bkp()
+            f.create_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
+
+    @pytest.mark.parametrize(
+        "targets",
+        ([".envrc", ".run", "xxx/xxx.txt"],)
+    )
+    def test_create_bkp_of_target_dir(self, targets):
+        bkp_dir = TARGET_DIR / CONFGUARD_BKP_DIR
+        f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
+        f.move_files()
+
+        f.create_bkp(source_dir=TARGET_DIR, bkp_dir=bkp_dir)
+
+        assert bkp_dir.exists()
+        assert len(list(bkp_dir.glob("*"))) == len(targets)
+        for target in targets:
+            assert (bkp_dir / target).exists()
 
     @pytest.mark.parametrize(
         "targets",
@@ -67,8 +85,9 @@ class TestFiles:
     )
     def test_restore_bkp(self, targets):
         # given: backup created
-        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=targets)
-        f.create_bkp()
+        bkp_dir = Path.cwd() / CONFGUARD_BKP_DIR
+        f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
+        f.create_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
 
         # when: all files are moved/deleted
         test_proj = ROOT_DIR / "tests/resources/test_proj"
@@ -77,7 +96,7 @@ class TestFiles:
         Path(test_proj / ".envrc").unlink(missing_ok=True)  # will be linked
         Path(test_proj / "xxx/xxx.txt").unlink(missing_ok=True)  # will be linked
 
-        f.restore_bkp()
+        f.restore_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
 
         # then: files are restored
         Path(test_proj / ".run").exists()
@@ -97,15 +116,19 @@ class TestFiles:
         )
     )
     def test_delete_bkp(self, targets):
-        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=targets)
-        f.create_bkp()
-        f.delete_bkp_dir()
-        assert not f.bkp_dir.exists()
+        bkp_dir = Path.cwd() / CONFGUARD_BKP_DIR
+        f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
+        f.create_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
+
+        f.delete_dir(dir_=bkp_dir)
+        assert not bkp_dir.exists()
 
     def test_delete_nonexisting_bkp(self):
-        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=[])
-        f.delete_bkp_dir()
-        assert not f.bkp_dir.exists()
+        bkp_dir = Path.cwd() / CONFGUARD_BKP_DIR
+        f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=[])
+
+        f.delete_dir(dir_=bkp_dir)
+        assert not bkp_dir.exists()
 
     @pytest.mark.parametrize(
         "targets",
@@ -117,12 +140,12 @@ class TestFiles:
         )
     )
     def test_move_files(self, targets):
-        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=targets)
+        f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
         f.move_files()
         for t in targets:
-            assert Path(config.confguard_path / REL_TARGET_DIR / t).exists()
+            assert Path(config.confguard_path / SENTINEL / t).exists()
             assert not Path(f.source_dir / t).exists()
-            assert Path(config.confguard_path / REL_TARGET_DIR / t) in f.target_locations
+            assert Path(config.confguard_path / SENTINEL / t) in f.target_locations
 
     @pytest.mark.parametrize(
         "targets",
@@ -134,16 +157,16 @@ class TestFiles:
     )
     def test_return_files(self, targets):
         # given
-        f = Files(rel_target_dir=REL_TARGET_DIR, source_dir=Path.cwd(), targets=targets)
+        f = Files(rel_target_dir=SENTINEL, source_dir=Path.cwd(), targets=targets)
         f.move_files()
         # when
         f.return_files()
         # then all files exist at their source destination again
         for t in targets:
             assert Path(f.source_dir / t).exists()
-            assert not Path(config.confguard_path / REL_TARGET_DIR / t).exists()
+            assert not Path(config.confguard_path / SENTINEL / t).exists()
         # entire target dir should be removed
-        assert not Path(config.confguard_path / REL_TARGET_DIR).exists()
+        assert not Path(config.confguard_path / SENTINEL).exists()
 
 
 class TestLinks:

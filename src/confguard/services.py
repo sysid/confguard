@@ -45,7 +45,7 @@ class Files:
     source_dir: Path
     rel_target_dir: Path
     target_dir: Path = field(init=False)
-    bkp_dir: Path = field(init=False)
+    # bkp_dir: Path = field(init=False)
     targets: list[str]
     target_locations: list[Path] = field(default_factory=list)
     source_locations: list[Path] = field(default_factory=list)
@@ -53,7 +53,7 @@ class Files:
     # init
     def __post_init__(self):
         self.target_dir = config.confguard_path / self.rel_target_dir
-        self.bkp_dir = self.source_dir / CONFGUARD_BKP_DIR
+        # self.bkp_dir = self.source_dir / CONFGUARD_BKP_DIR
 
     def move_files(self) -> None:
         Path(self.target_dir).mkdir(parents=True, exist_ok=True)
@@ -87,32 +87,33 @@ class Files:
                 raise Exception(f"Target dir {self.target_dir} is not empty. Will not delete it.")
         shutil.rmtree(self.target_dir)
 
-    def create_bkp(self) -> None:
+    def create_bkp(self, source_dir: Path, bkp_dir: Path) -> None:
         try:
-            Path(self.bkp_dir).mkdir(parents=True, exist_ok=False)
+            Path(bkp_dir).mkdir(parents=True, exist_ok=False)
         except FileExistsError:
-            raise BackupExistError(f"Backup dir {self.bkp_dir} already exists.")
+            raise BackupExistError(f"Backup dir {bkp_dir} already exists.")
 
         for rel_path in self.targets:
-            rel_path = Path(rel_path)
-            bkp_path = self.bkp_dir / rel_path
-            src_path = self.source_dir / rel_path
+            bkp_path = bkp_dir / rel_path
+            src_path = source_dir / rel_path
 
-            if rel_path.exists():
-                if not rel_path.is_symlink():
-                    if rel_path.is_file():
+            if src_path.exists():
+                if not src_path.is_symlink():
+                    if src_path.is_file():
                         bkp_path.parent.exists() or bkp_path.parent.mkdir(parents=True)
-                        shutil.copy2(rel_path, bkp_path)
-                    elif rel_path.is_dir():
-                        shutil.copytree(rel_path, bkp_path)
+                        shutil.copy2(src_path, bkp_path)
+                    elif src_path.is_dir():
+                        shutil.copytree(src_path, bkp_path)
+                else:
+                    _log.warning(f"File {src_path=} is a symlink. Skipping backup.")
             else:
-                _log.warning(f"File {rel_path=} does not exist")
+                _log.warning(f"File {src_path=} does not exist")
 
-    def restore_bkp(self) -> None:
-        assert self.bkp_dir.exists(), f"Backup dir {self.bkp_dir} does not exist"
+    def restore_bkp(self, source_dir: Path, bkp_dir: Path) -> None:
+        assert bkp_dir.exists(), f"Backup dir {bkp_dir} does not exist"
         for rel_path in self.targets:
-            bkp_path = self.bkp_dir / rel_path
-            src_path = self.source_dir / rel_path
+            bkp_path = bkp_dir / rel_path
+            src_path = source_dir / rel_path
 
             if bkp_path.exists():
                 if bkp_path.is_file():
@@ -135,21 +136,14 @@ class Files:
             else:
                 _log.warning(f"File {bkp_path=} does not exist in backup. Cannot restore.")
 
-    def delete_bkp_dir(self) -> None:
+    @staticmethod
+    def delete_dir(dir_: Path) -> None:
         try:
-            shutil.rmtree(self.bkp_dir, ignore_errors=False)
+            shutil.rmtree(dir_, ignore_errors=False)
         except FileNotFoundError:
             pass
         except Exception:
-            raise BackupNotDeleted(f"Backup dir {self.bkp_dir} could not be deleted. Please delete it manually.")
-
-    def delete_target_dir(self) -> None:
-        try:
-            shutil.rmtree(self.target_dir, ignore_errors=False)
-        except FileNotFoundError:
-            pass
-        except Exception:
-            raise BackupNotDeleted(f"Target dir {self.target_dir} could not be deleted. Please delete it manually.")
+            raise BackupNotDeleted(f"Backup dir {dir_} could not be deleted. Please delete it manually.")
 
 
 def _create_relative_path(source: str, target: str) -> Path:

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import typer
 
-from confguard.environment import CONFIG_TEMPLATE, config
+from confguard.environment import CONFIG_TEMPLATE, config, CONFGUARD_BKP_DIR
 from confguard.services import Sentinel, Files, Links
 
 _log = logging.getLogger(__name__)
@@ -46,14 +46,15 @@ def _guard() -> None:
         typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
         return
 
+    bkp_dir = Path.cwd() / CONFGUARD_BKP_DIR
     # backup as tx prerequisite
     Sentinel.create()
     files = Files(rel_target_dir=config.sentinel, source_dir=Path.cwd(), targets=targets)
     try:
-        files.create_bkp()
+        files.create_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
-        files.delete_bkp_dir()
+        files.delete_dir(dir_=bkp_dir)
         Sentinel.remove()
         raise typer.Exit(1)
 
@@ -66,11 +67,30 @@ def _guard() -> None:
         typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
         lks.remove()
         lks.back_remove()
-        files.restore_bkp()
+        files.restore_bkp(source_dir=Path.cwd(), bkp_dir=bkp_dir)
         raise typer.Exit(1)
     finally:
-        files.delete_bkp_dir()
+        files.delete_dir(dir_=bkp_dir)
 
+
+def _unguard() -> None:
+    cfg = config.confguard.get("config")
+    if cfg is None:
+        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
+        return
+    targets = cfg.get("targets")
+    if cfg is None:
+        typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
+        return
+
+    files = Files(rel_target_dir=config.sentinel, source_dir=Path.cwd(), targets=targets)
+    try:
+        files.create_bkp()
+    except Exception as e:
+        typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
+        files.delete_dir()
+        Sentinel.remove()
+        raise typer.Exit(1)
 
 @app.command()
 def check_source(source: str, verbose: bool = False):
