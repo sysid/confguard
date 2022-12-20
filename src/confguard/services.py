@@ -23,12 +23,11 @@ class Sentinel:
     """
 
     @staticmethod
-    def create() -> None:
+    def create(source_dir: Path) -> None:
         if config.sentinel is not None:
             _log.debug(f"Sentinel already exists: {config.sentinel=}")
             return
 
-        source_dir = Path.cwd()
         try:
             p = source_dir.parts[-1]  # get proj dir as part of sentinel filename
         except IndexError:
@@ -51,8 +50,8 @@ class Files:
     target_dir: Path = field(init=False)
     # bkp_dir: Path = field(init=False)
     targets: list[str]
-    target_locations: list[Path] = field(default_factory=list)
-    source_locations: list[Path] = field(default_factory=list)
+    # target_locations: list[Path] = field(default_factory=list)
+    # source_locations: list[Path] = field(default_factory=list)
 
     # init
     def __post_init__(self):
@@ -70,9 +69,6 @@ class Files:
                 _log.debug(f"Moving {src_path} to {tgt_path}")
                 tgt_path.parent.exists() or tgt_path.parent.mkdir(parents=True)
                 src_path.rename(tgt_path)
-                if source_dir == Path.cwd():
-                    self.source_locations.append(src_path)
-                    self.target_locations.append(tgt_path)
             else:
                 _log.warning(f"File {src_path=} does not exist")
 

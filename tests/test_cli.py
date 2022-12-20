@@ -14,11 +14,21 @@ runner = CliRunner()
 
 class TestGuard:
     def test_guard(self, caplog):
-        caplog.set_level(100000)  # BUG: https://github.com/pallets/click/issues/824#issuecomment-562581313
+        caplog.set_level(
+            100000
+        )  # BUG: https://github.com/pallets/click/issues/824#issuecomment-562581313
         result = runner.invoke(app, ["guard", str(TEST_PROJ)])
         print(result.stdout)
         assert result.exit_code == 0
         # assert Path(config.confguard_path).exists()
+
+    def test_unguard(self, caplog):
+        caplog.set_level(
+            100000
+        )  # BUG: https://github.com/pallets/click/issues/824#issuecomment-562581313
+        result = runner.invoke(app, ["unguard", str(TEST_PROJ)])
+        print(result.stdout)
+        assert result.exit_code == 0
 
 
 def test__guard():

@@ -38,8 +38,8 @@ coverage:  ## Run tests with coverage
 	python -m xml
 
 .PHONY: test
-test:  ## run tests
-	pushd tests/resources/test_proj &&  CONFGUARD_PATH=/tmp/confgruard python -m pytest -ra --junitxml=report.xml --cov-config=setup.cfg --cov-report=xml --cov-report term --cov=$(pkg_src) -vv tests/
+test: test-proj  ## run tests
+	CONFGUARD_PATH=/tmp/confgruard python -m pytest -ra --junitxml=report.xml --cov-config=setup.cfg --cov-report=xml --cov-report term --cov=$(pkg_src) -vv tests/
 
 .PHONY: tox
 tox:   ## Run tox
@@ -52,6 +52,18 @@ view-source:  ## view-source: visual check
 .PHONY: view-target
 view-target:  ## view-target: visual check
 	find /tmp/confguard/ -ls
+
+.PHONY: test-proj-xxx
+test-proj-xxx:  ## test-proj-xxx: create ~/xxx/test_proj to test installed confguard
+	rm -fr ~/xxx/test_proj
+	rm -fr /tmp/confguard
+	cp -a tests/resources/ref_proj ~/xxx/test_proj
+
+.PHONY: test-proj
+test-proj:  ## test-proj: create ~/xxx/test_proj to test installed confguard
+	rm -fr tests/resources/test_proj
+	rm -fr /tmp/confguard
+	cp -a tests/resources/ref_proj tests/resources/test_proj
 
 ################################################################################
 # Building, Deploying \

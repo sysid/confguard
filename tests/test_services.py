@@ -9,24 +9,24 @@ from confguard.exceptions import BackupExistError
 
 # noinspection PyProtectedMember
 from confguard.services import Files, Links, Sentinel
-from tests.conftest import SENTINEL, TARGET_DIR
+from tests.conftest import SENTINEL, TARGET_DIR, TEST_PROJ
 
 _log = logging.getLogger(__name__)
 
 
 class TestSentinel:
     def test_create(self):
-        Sentinel.create()
+        Sentinel.create(TEST_PROJ)
         assert config.sentinel is not None
 
     def test_create_sentinel_exists(self):
-        Sentinel.create()
+        Sentinel.create(TEST_PROJ)
         first = config.sentinel
-        Sentinel.create()
+        Sentinel.create(TEST_PROJ)
         assert config.sentinel == first
 
     def test_remove(self):
-        Sentinel.create()
+        Sentinel.create(TEST_PROJ)
         Sentinel.remove()
         assert config.sentinel is None
 
@@ -143,7 +143,6 @@ class TestFiles:
         for t in targets:
             assert Path(config.confguard_path / SENTINEL / t).exists()
             assert not Path(f.source_dir / t).exists()
-            assert Path(config.confguard_path / SENTINEL / t) in f.target_locations
 
     @pytest.mark.parametrize(
         "targets",

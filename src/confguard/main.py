@@ -23,19 +23,16 @@ def configure():
 @app.command()
 def guard(
     # path argument
-    source_dir: Path = typer.Argument(..., help="Path to the directory to guard", exists=True),
+    source_dir: Path = typer.Argument(
+        ..., help="Path to the directory to guard", exists=True
+    ),
 ):
     """
     looks in the current directory for a .confguard file
     take current directory as source
 
     CAVEAT: relative linking cannot span mounts, absolute linking can
-
-    Create guarded config:
-    1. move files to save location/directory
-    2. create sentinel representation in local directory
     """
-    # pathlib expand path and homedir
     source_dir = Path(source_dir).expanduser().resolve()
     _log.info(f"Guarding {source_dir=}")
     _guard(source_dir)
@@ -51,7 +48,7 @@ def _guard(source_dir: Path) -> None:
         typer.secho("Invalid config, check '.confguard' format.", fg=typer.colors.RED)
         return
 
-    Sentinel.create()
+    Sentinel.create(source_dir)
     bkp_dir = source_dir / CONFGUARD_BKP_DIR
     target_dir = config.confguard_path / config.sentinel
     # backup as tx prerequisite
@@ -79,6 +76,22 @@ def _guard(source_dir: Path) -> None:
         raise typer.Exit(1)
     finally:
         files.delete_dir(dir_=bkp_dir)
+
+
+@app.command()
+def unguard(
+    # path argument
+    source_dir: Path = typer.Argument(
+        ..., help="Path to the directory to guard", exists=True
+    ),
+):
+    """unguard
+    looks in the current directory for a .confguard file
+    reverts changes made by `guard
+    """
+    source_dir = Path(source_dir).expanduser().resolve()
+    _log.info(f"Guarding {source_dir=}")
+    _unguard(source_dir)
 
 
 def _unguard(source_dir: Path) -> None:

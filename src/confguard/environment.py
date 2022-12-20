@@ -100,6 +100,6 @@ except pydantic.error_wrappers.ValidationError as e:
     typer.secho(
         f"CONFIGURATION ERROR: Make sure environment variable CONFGUARD_PATH is set.",
         fg=typer.colors.RED,
-        err=True
+        err=True,
     )
     sys.exit(1)
