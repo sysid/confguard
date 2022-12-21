@@ -34,6 +34,14 @@ The `API Reference <http://confguard.readthedocs.io>`_ provides API-level docume
 ## Changelog
 [CHANGELOG.md](https://github.com/sysid/playbook/blob/master/CHANGELOG.md)
 
+## Scratch
+for f in *; do cp --remove-destination source/$f $f; done
+find ./ -type l -print0|xargs -0 -n1 -i sh -c 'cp --remove-destination $(readlink "{}") "{}" '
+for f in *; do cp --remove-destination $(readlink "$f") "$f"; done
+
+find ./ -not -path './.venv/*' -not -path './.git/*' -type l -print0|xargs -0 -i sh -c 'echo $(readlink "{}") "{}" '
+
+
 
 <!-- Badges -->
 
