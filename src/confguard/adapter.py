@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TypeVar, runtime_checkable, Protocol
+from typing import Protocol, TypeVar, runtime_checkable
 
 import tomlkit
 from tomlkit import TOMLDocument, table
@@ -9,7 +9,7 @@ from tomlkit.exceptions import NonExistentKey
 
 from confguard.environment import CONFGUARD_CONFIG_FILE, config
 from confguard.exceptions import InvalidConfigError
-from confguard.helper import serialize_to_base64, deserialize_from_base64
+from confguard.helper import deserialize_from_base64, serialize_to_base64
 from confguard.model import ConfGuard
 
 _log = logging.getLogger(__name__)
@@ -41,12 +41,9 @@ class TomlRepoConfGuard:
             raise FileNotFoundError(f"{self.path} does not exist")
         with open(self.path, mode="rt", encoding="utf-8") as fp:
             self.toml = tomlkit.load(fp)
-            _log.info(f"config: {self.source_dir=}")
             _log.debug(f"{self.toml=}")
 
     def get(self) -> ConfGuard:
-        sentinel = None
-        files = None
         try:
             targets = self.toml["config"]["targets"]
         except NonExistentKey:
@@ -79,10 +76,11 @@ class TomlRepoConfGuard:
                 intern = table()
                 intern.add("sentinel", confguard.sentinel)
                 intern.add(
-                    "files", tomlkit.string(
+                    "files",
+                    tomlkit.string(
                         serialize_to_base64(confguard.targets),
                         multiline=True,
-                    )
+                    ),
                 )
                 self.toml["_internal_"] = intern
                 self.toml["_internal_"].comment("DO NOT EDIT FROM HERE")

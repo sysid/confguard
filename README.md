@@ -1,5 +1,7 @@
-confguard
-#########
+# confguard
+
+Project can be re-guarded any time, potential changes will be updated if necessary.
+When the targets in .confguard change re-run the guarding process.
 
 [![PyPI Version][pypi-image]][pypi-url]
 [![Build Status][build-image]][build-url]

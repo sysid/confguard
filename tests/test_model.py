@@ -3,29 +3,37 @@ import shutil
 
 import pytest
 
-from confguard.environment import CONFGUARD_BKP_DIR
+from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE
 from confguard.exceptions import BackupExistError
 from confguard.model import ConfGuard
-from tests.conftest import TEST_PROJ, TARGET_DIR
+from tests.conftest import TARGET_DIR, TEST_PROJ
 
 
 class TestSentinel:
     def test_conf_guard(self):
-        cg = ConfGuard(source_dir=TEST_PROJ, targets=['.envrc', '.run', 'xxx/xxx.txt'])
+        cg = ConfGuard(source_dir=TEST_PROJ, targets=[".envrc", ".run", "xxx/xxx.txt"])
         assert cg.source_dir == TEST_PROJ
         assert isinstance(cg, ConfGuard)
         assert cg.sentinel is None
 
     def test_create_sentinel(self):
-        cg = ConfGuard(source_dir=TEST_PROJ, targets=['.envrc', '.run', 'xxx/xxx.txt'])
+        cg = ConfGuard(source_dir=TEST_PROJ, targets=[".envrc", ".run", "xxx/xxx.txt"])
         cg.create_sentinel()
         assert "test_proj" in cg.sentinel
 
     def test_remove_sentinel(self):
-        cg = ConfGuard(source_dir=TEST_PROJ, targets=['.envrc', '.run', 'xxx/xxx.txt'])
+        cg = ConfGuard(source_dir=TEST_PROJ, targets=[".envrc", ".run", "xxx/xxx.txt"])
         cg.create_sentinel()
         cg.remove_sentinel()
         assert cg.sentinel is None
+
+    def test_backup_toml(self):
+        cg = ConfGuard(source_dir=TEST_PROJ, targets=[".envrc", ".run", "xxx/xxx.txt"])
+        cg.create_sentinel()
+        cg.move_files()
+        cg.backup_toml()
+        toml_bkp = (cg.target_dir / CONFGUARD_CONFIG_FILE).with_suffix(".bkp")
+        assert toml_bkp.exists()
 
 
 class TestFiles:

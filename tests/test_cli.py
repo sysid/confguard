@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 
 import pytest
@@ -6,8 +5,9 @@ import tomlkit
 from click.exceptions import Exit
 from typer.testing import CliRunner
 
-from confguard.environment import config, CONFGUARD_CONFIG_FILE
-from confguard.main import _guard, _unguard, app
+from confguard.environment import CONFGUARD_CONFIG_FILE, config
+from confguard.main import _find_and_link, _guard, _unguard, app
+from confguard.model import ConfGuard
 from tests.conftest import TEST_PROJ
 
 runner = CliRunner()
@@ -50,6 +50,9 @@ def test__guard():
     assert (confguard / ".envrc").is_file()
     assert (confguard / ".run").is_dir()
     assert (confguard / "xxx/xxx.txt").is_file()
+
+    # then: .confguard backup exists
+    assert (cg.target_dir / CONFGUARD_CONFIG_FILE).with_suffix(".bkp").is_file()
 
     # then: in source dir the files and dirs are replaced by links
     assert (TEST_PROJ / ".envrc").is_symlink()
@@ -129,3 +132,57 @@ def test__guard_with_changed_targets():
 
     # then backlink created
     assert Path(confguard / f".{cg.sentinel}.confguard").resolve() == TEST_PROJ
+
+
+def test__find_and_link():
+    # given a guarded project with borken links
+    _ = _guard(source_dir=TEST_PROJ)
+    (TEST_PROJ / CONFGUARD_CONFIG_FILE).unlink()
+    assert not (TEST_PROJ / CONFGUARD_CONFIG_FILE).exists()
+    (TEST_PROJ / ".envrc").unlink()
+    assert not (TEST_PROJ / ".envrc").exists()
+    (TEST_PROJ / "xxx/xxx.txt").unlink()
+    assert not (TEST_PROJ / "xxx/xxx.txt").exists()
+
+    # when project is relinked
+    cg = _find_and_link(source_dir=TEST_PROJ)
+
+    # then correct links are recreated
+    # then confguard directory is there
+    confguard = list(Path(config.confguard_path).glob("**/test_proj-*"))
+    assert len(confguard) == 1
+    confguard = confguard[0]
+    assert confguard.is_dir()
+    assert confguard.name == cg.sentinel
+
+    # then: confguard directory contains the files and dirs
+    assert (confguard / ".envrc").is_file()
+    assert (confguard / ".run").is_dir()
+    assert (confguard / "xxx/xxx.txt").is_file()
+
+    # then: .confguard backup exists
+    assert (cg.target_dir / CONFGUARD_CONFIG_FILE).with_suffix(".bkp").is_file()
+
+    # then: in source dir the files and dirs are replaced by links
+    assert (TEST_PROJ / ".envrc").is_symlink()
+    assert (TEST_PROJ / ".run").is_symlink()
+    assert (TEST_PROJ / "xxx/xxx.txt").is_symlink()
+
+    # then: the links point to the confguard directory replacements
+    assert Path(TEST_PROJ / ".envrc").resolve() == Path(confguard / ".envrc")
+    assert Path(TEST_PROJ / ".run").resolve() == Path(confguard / ".run")
+
+    # then backlink created
+    assert Path(confguard / f".{cg.sentinel}.confguard").resolve() == TEST_PROJ
+
+
+def test_restore_toml():
+    # given a guarded project with missing .confguard file
+    cg = _guard(source_dir=TEST_PROJ)
+    (TEST_PROJ / CONFGUARD_CONFIG_FILE).unlink()
+    assert not (TEST_PROJ / CONFGUARD_CONFIG_FILE).exists()
+
+    # when restore_toml is called
+    ConfGuard.restore_toml(cg.source_dir, cg.target_dir)
+    # then
+    assert (TEST_PROJ / CONFGUARD_CONFIG_FILE).exists()

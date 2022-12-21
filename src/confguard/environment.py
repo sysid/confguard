@@ -14,7 +14,7 @@ RUN_ENVS = ["local", "dev"]
 ROOT_DIR = Path(__file__).parent.parent.parent.absolute()
 FINGERPRINT = ".*.confguard"  # identifier for sentinel files
 CONFGUARD_CONFIG_FILE = ".confguard"
-CONFGUARD_BKP_DIR = ".confguard.bkp"
+CONFGUARD_BKP_DIR = "_confguard.tmp.bkp"
 
 RUN_ENV = os.environ.get("RUN_ENV", "local").lower()
 assert RUN_ENV in RUN_ENVS, f"RUN_ENV must be one of {RUN_ENVS}"

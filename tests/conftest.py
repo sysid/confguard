@@ -51,4 +51,3 @@ def clear_test_proj():
     Path(TEST_PROJ / ".run").unlink(missing_ok=True)  # will be linked
     Path(TEST_PROJ / ".envrc").unlink(missing_ok=True)  # will be linked
     Path(TEST_PROJ / "xxx/xxx.txt").unlink(missing_ok=True)  # will be linked
-

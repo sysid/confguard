@@ -1,9 +1,16 @@
+import logging
 from pathlib import Path
 
 import pytest
 
-from confguard.helper import serialize_to_base64, deserialize_from_base64, _create_relative_path
-from tests.test_services import _log
+# noinspection PyProtectedMember
+from confguard.helper import (
+    _create_relative_path,
+    deserialize_from_base64,
+    serialize_to_base64,
+)
+
+_log = logging.getLogger(__name__)
 
 
 @pytest.mark.parametrize(
@@ -33,7 +40,7 @@ def test_find_relative_path(source, target, expected):
         if sp == target_parts[i]:  # remove common leading parts
             continue
         else:
-            removed_p = source_parts[:i]
+            _ = source_parts[:i]
             new_sp = source_parts[i:]
             new_tp = target_parts[i:]
             break
@@ -76,7 +83,6 @@ FILES = [
 
 
 def test_serialize_to_base64():
-
     # Serialize the list to a base64-encoded string
     serialized = serialize_to_base64(FILES)
 

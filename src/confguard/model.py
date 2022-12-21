@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from confguard.environment import CONFGUARD_CONFIG_FILE, config, CONFGUARD_BKP_DIR
+from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE, config
 from confguard.exceptions import BackupExistError, DirectoryNotDeleted
 from confguard.helper import _create_relative_path
 
@@ -39,7 +39,8 @@ class ConfGuard:
     def remove_sentinel(self) -> None:
         self.sentinel = None
 
-    def _move_files(self, source_dir: Path, target_dir: Path, targets: list[str]) -> None:
+    @staticmethod
+    def _move_files(source_dir: Path, target_dir: Path, targets: list[str]) -> None:
         for rel_path in targets:
             tgt_path = target_dir / rel_path
             src_path = source_dir / rel_path
@@ -61,7 +62,8 @@ class ConfGuard:
         self._move_files(self.target_dir, self.source_dir, self.files)
         shutil.rmtree(self.target_dir)
 
-    def _create_bkp(self, source_dir: Path, bkp_dir: Path, targets: list[str]) -> None:
+    @staticmethod
+    def _create_bkp(source_dir: Path, bkp_dir: Path, targets: list[str]) -> None:
         try:
             Path(bkp_dir).mkdir(parents=True, exist_ok=False)
         except FileExistsError:
@@ -87,7 +89,8 @@ class ConfGuard:
         bkp_dir = dir_ / CONFGUARD_BKP_DIR
         self._create_bkp(dir_, bkp_dir, targets)
 
-    def _restore_bkp(self, source_dir: Path, bkp_dir: Path, targets: list[str]) -> None:
+    @staticmethod
+    def _restore_bkp(source_dir: Path, bkp_dir: Path, targets: list[str]) -> None:
         assert bkp_dir.exists(), f"Backup dir {bkp_dir} does not exist"
         for rel_path in targets:
             bkp_path = bkp_dir / rel_path
@@ -95,7 +98,9 @@ class ConfGuard:
 
             if bkp_path.exists():
                 if bkp_path.is_file():
-                    src_path.parent.exists() or src_path.parent.mkdir(parents=True, exist_ok=True)
+                    src_path.parent.exists() or src_path.parent.mkdir(
+                        parents=True, exist_ok=True
+                    )
 
                     if src_path.exists() and src_path.is_symlink():
                         _log.warning(
@@ -170,6 +175,22 @@ class ConfGuard:
         source = self.target_dir / f".{self.sentinel}.confguard"
         _log.debug(f"Removing link {source}")
         source.unlink(missing_ok=True)
+
+    def backup_toml(self) -> None:
+        """Backup toml file
+        IMPORTANT: ensure that the relevant state is saved in the toml file before backing up.
+        """
+        toml = self.source_dir / CONFGUARD_CONFIG_FILE
+        toml_bkp = (self.target_dir / CONFGUARD_CONFIG_FILE).with_suffix(".bkp")
+        shutil.copy2(toml, toml_bkp)
+
+    @staticmethod
+    def restore_toml(source_dir: Path, target_dir: Path) -> Path:
+        toml = source_dir / CONFGUARD_CONFIG_FILE
+        toml_bkp = (target_dir / CONFGUARD_CONFIG_FILE).with_suffix(".bkp")
+        shutil.copy2(toml_bkp, toml)
+        _log.info(f"Restored configuration file: {toml}")
+        return toml
 
     def __repr__(self) -> str:
         return f"ConfGuard({self.source_dir}, {self.target_dir}, {self.targets})"
