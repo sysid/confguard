@@ -187,9 +187,9 @@ class TestLinks:
 
     @pytest.mark.parametrize("targets", ([".envrc", ".run", "xxx/xxx.txt"],))
     def test_create_links_relative(self, clear_test_proj, targets):
-        cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
+        cg = ConfGuard(source_dir=TEST_PROJ, targets=targets, is_relative=True)
         cg.create_sentinel()
-        cg.create_lk(targets, is_relative=True)
+        cg.create_lk(targets)
         for rel_path in targets:
             tgt_path = TARGET_DIR / rel_path
             src_path = TEST_PROJ / rel_path
@@ -197,9 +197,9 @@ class TestLinks:
 
     @pytest.mark.parametrize("targets", ([".envrc", ".run", "xxx/xxx.txt"],))
     def test_remove_links(self, clear_test_proj, targets):
-        cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
+        cg = ConfGuard(source_dir=TEST_PROJ, targets=targets, is_relative=True)
         cg.create_sentinel()
-        cg.create_lk(targets, is_relative=True)
+        cg.create_lk(targets)
 
         cg.remove_lk(targets)
         for rel_path in targets:
@@ -209,9 +209,9 @@ class TestLinks:
     @pytest.mark.parametrize("targets", ([".envrc", ".run", "xxx/xxx.txt"],))
     def test_remove_non_existing_links(self, caplog, clear_test_proj, targets):
         caplog.set_level(logging.DEBUG)
-        cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
+        cg = ConfGuard(source_dir=TEST_PROJ, targets=targets, is_relative=True)
         cg.create_sentinel()
-        cg.create_lk(targets, is_relative=True)
+        cg.create_lk(targets)
         cg.remove_lk(targets)
 
         # when: remove non existing links

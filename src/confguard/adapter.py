@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Protocol, TypeVar, runtime_checkable
 
@@ -50,9 +51,14 @@ class TomlRepoConfGuard:
             raise InvalidConfigError(
                 f"Invalid config in {self.path}, targets are missing."
             )
+        try:
+            is_relative = self.toml["config"]["relative"]
+        except NonExistentKey:
+            is_relative = False
         cg = ConfGuard(
             source_dir=self.source_dir,
             targets=targets,
+            is_relative=is_relative,
         )
         try:
             sentinel = self.toml["_internal_"]["sentinel"]
@@ -75,6 +81,7 @@ class TomlRepoConfGuard:
             else:  # new
                 intern = table()
                 intern.add("sentinel", confguard.sentinel)
+                intern.add("timestamp", datetime.utcnow())
                 intern.add(
                     "files",
                     tomlkit.string(

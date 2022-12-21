@@ -56,6 +56,6 @@ def _create_relative_path(source: str, target: str) -> Path:
     if not (source_path.is_absolute() and target_path.is_absolute()):
         raise ValueError("Both source and target must be absolute paths")
 
-    name = Path(source).name
+    name = Path(target).name  # Gotcha: source_path.name is not the same as target_path.name
     rel_path = os.path.relpath(target_path, source_path)
     return Path(rel_path) / name

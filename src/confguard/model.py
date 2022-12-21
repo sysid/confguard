@@ -20,6 +20,7 @@ class ConfGuard:
     files: list[str] = None
     config_path: Path = field(init=False)
     sentinel: Optional[str] = None
+    is_relative: bool = False
 
     # files: Files
     # links: Links
@@ -137,12 +138,12 @@ class ConfGuard:
                 f"{dir_} could not be deleted. Please delete it manually."
             )
 
-    def create_lk(self, targets: list[str], is_relative: bool = False) -> None:
+    def create_lk(self, targets: list[str]) -> None:
         for rel_path in targets:
             tgt_path = self.target_dir / rel_path
             src_path = self.source_dir / rel_path
 
-            if is_relative:
+            if self.is_relative:
                 tgt_path = _create_relative_path(str(src_path), str(tgt_path))
 
             _log.debug(f"Creating link {src_path} to {tgt_path}")
@@ -161,11 +162,11 @@ class ConfGuard:
                     f"File {str(src_path)} is not a symlink. Skipping removal."
                 )
 
-    def back_create(self, is_relative: bool = False) -> None:
+    def back_create(self) -> None:
         target = self.source_dir
         source = self.target_dir / f".{self.sentinel}.confguard"
 
-        if is_relative:
+        if self.is_relative:
             target = _create_relative_path(str(source), str(target))
 
         _log.debug(f"Creating link {source} to {target}")

@@ -186,3 +186,45 @@ def test_restore_toml():
     ConfGuard.restore_toml(cg.source_dir, cg.target_dir)
     # then
     assert (TEST_PROJ / CONFGUARD_CONFIG_FILE).exists()
+
+
+def test__guard_relative():
+
+    # when relative paths are configured
+    path = TEST_PROJ / CONFGUARD_CONFIG_FILE
+    with open(path, mode="rt", encoding="utf-8") as fp:
+        toml = tomlkit.load(fp)
+
+    toml["config"]["relative"] = True
+
+    with open(path, mode="wt", encoding="utf-8") as fp:
+        tomlkit.dump(toml, fp)
+
+    cg = _guard(source_dir=TEST_PROJ)
+
+    # then confguard directory is there
+    confguard = list(Path(config.confguard_path).glob("**/test_proj-*"))
+    assert len(confguard) == 1
+    confguard = confguard[0]
+    assert confguard.is_dir()
+    assert confguard.name == cg.sentinel
+
+    # then: confguard directory contains the files and dirs
+    assert (confguard / ".envrc").is_file()
+    assert (confguard / ".run").is_dir()
+    assert (confguard / "xxx/xxx.txt").is_file()
+
+    # then: .confguard backup exists
+    assert (cg.target_dir / CONFGUARD_CONFIG_FILE).with_suffix(".bkp").is_file()
+
+    # then: in source dir the files and dirs are replaced by links
+    assert (TEST_PROJ / ".envrc").is_symlink()
+    assert (TEST_PROJ / ".run").is_symlink()
+    assert (TEST_PROJ / "xxx/xxx.txt").is_symlink()
+
+    # then: the links point to the confguard directory replacements
+    assert Path(TEST_PROJ / ".envrc").resolve() == Path(confguard / ".envrc")
+    assert Path(TEST_PROJ / ".run").resolve() == Path(confguard / ".run")
+
+    # then backlink created
+    assert Path(confguard / f".{cg.sentinel}.confguard").resolve() == TEST_PROJ
