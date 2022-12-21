@@ -57,6 +57,7 @@ class TestFiles:
     )
     def test_unmove_files(self, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
+        cg.files = targets  # would be loaded from toml state
         cg.create_sentinel()
         cg.move_files()
 
@@ -80,7 +81,7 @@ class TestBackup:
     )
     def test_create_bkp(self, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
-        cg.create_bkp(TEST_PROJ)
+        cg.create_bkp(TEST_PROJ, targets)
 
         bkp_dir = TEST_PROJ / CONFGUARD_BKP_DIR
         assert bkp_dir.exists()
@@ -91,10 +92,10 @@ class TestBackup:
     @pytest.mark.parametrize("targets", ([".envrc"],))
     def test_create_bkp_but_bkp_dir_exists(self, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
-        cg.create_bkp(TEST_PROJ)
+        cg.create_bkp(TEST_PROJ, targets)
 
         with pytest.raises(BackupExistError) as e:
-            cg.create_bkp(TEST_PROJ)
+            cg.create_bkp(TEST_PROJ, targets)
 
     @pytest.mark.parametrize("targets", ([".envrc", ".run", "xxx/xxx.txt"],))
     def test_create_bkp_of_target_dir(self, targets):
@@ -102,7 +103,7 @@ class TestBackup:
         cg.create_sentinel()
         cg.move_files()
 
-        cg.create_bkp(cg.target_dir)
+        cg.create_bkp(cg.target_dir, targets)
 
         bkp_dir = cg.target_dir / CONFGUARD_BKP_DIR
         assert bkp_dir.exists()
@@ -120,7 +121,7 @@ class TestBackup:
     def test_restore_bkp(self, targets):
         # given: backup created
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
-        cg.create_bkp(TEST_PROJ)
+        cg.create_bkp(TEST_PROJ, targets)
 
         # when: all files are moved/deleted
         shutil.rmtree(TEST_PROJ / ".run", ignore_errors=True)  # will be linked
@@ -128,7 +129,7 @@ class TestBackup:
         (TEST_PROJ / ".envrc").unlink(missing_ok=True)  # will be linked
         (TEST_PROJ / "xxx/xxx.txt").unlink(missing_ok=True)  # will be linked
 
-        cg.restore_bkp(dir_=TEST_PROJ)
+        cg.restore_bkp(TEST_PROJ, targets)
 
         # then: files are restored
         (TEST_PROJ / ".run").exists()
@@ -145,7 +146,7 @@ class TestBackup:
     def test_delete_bkp(self, targets):
         bkp_dir = TEST_PROJ / CONFGUARD_BKP_DIR
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
-        cg.create_bkp(TEST_PROJ)
+        cg.create_bkp(TEST_PROJ, targets)
 
         cg.delete_dir(dir_=bkp_dir)
         assert not bkp_dir.exists()
@@ -170,7 +171,7 @@ class TestLinks:
     def test_create_links(self, clear_test_proj, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
         cg.create_sentinel()
-        cg.create_lk()
+        cg.create_lk(targets)
         for rel_path in targets:
             tgt_path = TARGET_DIR / rel_path
             src_path = TEST_PROJ / rel_path
@@ -180,7 +181,7 @@ class TestLinks:
     def test_create_links_relative(self, clear_test_proj, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
         cg.create_sentinel()
-        cg.create_lk(is_relative=True)
+        cg.create_lk(targets, is_relative=True)
         for rel_path in targets:
             tgt_path = TARGET_DIR / rel_path
             src_path = TEST_PROJ / rel_path
@@ -190,9 +191,9 @@ class TestLinks:
     def test_remove_links(self, clear_test_proj, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
         cg.create_sentinel()
-        cg.create_lk(is_relative=True)
+        cg.create_lk(targets, is_relative=True)
 
-        cg.remove_lk()
+        cg.remove_lk(targets)
         for rel_path in targets:
             src_path = TEST_PROJ / rel_path
             assert not src_path.exists()
@@ -202,11 +203,11 @@ class TestLinks:
         caplog.set_level(logging.DEBUG)
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
         cg.create_sentinel()
-        cg.create_lk(is_relative=True)
-        cg.remove_lk()
+        cg.create_lk(targets, is_relative=True)
+        cg.remove_lk(targets)
 
         # when: remove non existing links
-        cg.remove_lk()
+        cg.remove_lk(targets)
         # then: no error
         for rel_path in targets:
             src_path = TEST_PROJ / rel_path

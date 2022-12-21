@@ -1,8 +1,12 @@
+import logging
 from pathlib import Path
 
+import pytest
+import tomlkit
+from click.exceptions import Exit
 from typer.testing import CliRunner
 
-from confguard.environment import config
+from confguard.environment import config, CONFGUARD_CONFIG_FILE
 from confguard.main import _guard, _unguard, app
 from tests.conftest import TEST_PROJ
 
@@ -75,3 +79,53 @@ def test__unguard():
     assert (TEST_PROJ / ".run").is_dir()
     assert (TEST_PROJ / "xxx/xxx.txt").is_file()
     assert cg.sentinel is None
+
+
+def test__guard_already_guarded(caplog, capsys):
+    cg = _guard(source_dir=TEST_PROJ)
+
+    with pytest.raises(Exit):
+        cg = _guard(source_dir=TEST_PROJ)
+    captured = capsys.readouterr()
+    assert "nothing to do" in captured.out
+
+
+def test__guard_with_changed_targets():
+    # given a guarded project
+    cg = _guard(source_dir=TEST_PROJ)
+
+    # when the targets are changed
+    path = TEST_PROJ / CONFGUARD_CONFIG_FILE
+    with open(path, mode="rt", encoding="utf-8") as fp:
+        toml = tomlkit.load(fp)
+
+    toml["config"]["targets"] = ["xxx/xxx.txt"]  # remove .envrc and .run from targets
+
+    with open(path, mode="wt", encoding="utf-8") as fp:
+        tomlkit.dump(toml, fp)
+
+    # and the project is again guarded
+    cg = _guard(source_dir=TEST_PROJ)
+
+    # then confguard directory is there
+    confguard = list(Path(config.confguard_path).glob("**/test_proj-*"))
+    assert len(confguard) == 1
+    confguard = confguard[0]
+    assert confguard.is_dir()
+    assert confguard.name == cg.sentinel
+
+    # then: confguard directory contains only the xxx/xxx.txt file
+    assert (confguard / "xxx/xxx.txt").is_file()
+    assert not (confguard / ".envrc").exists()
+    assert not (confguard / ".run").exists()
+
+    # then: in source dir ony the xxx/xxx.txt file is replaced by a link
+    assert (TEST_PROJ / ".envrc").is_file()
+    assert (TEST_PROJ / ".run").is_dir()
+    assert (TEST_PROJ / "xxx/xxx.txt").is_symlink()
+
+    # then: the links point to the confguard directory replacements
+    assert Path(TEST_PROJ / "xxx/xxx.txt").resolve() == Path(confguard / "xxx/xxx.txt")
+
+    # then backlink created
+    assert Path(confguard / f".{cg.sentinel}.confguard").resolve() == TEST_PROJ

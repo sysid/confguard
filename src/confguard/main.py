@@ -4,7 +4,7 @@ from pathlib import Path
 import typer
 
 from adapter import TomlRepoConfGuard
-from confguard.environment import CONFGUARD_BKP_DIR, config, CONFGUARD_CONFIG_FILE
+from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE
 from confguard.exceptions import InvalidConfigError
 from confguard.model import ConfGuard
 
@@ -43,17 +43,21 @@ def _guard(source_dir: Path) -> ConfGuard:
         raise typer.Exit(1)
 
     if cg.sentinel is not None:
-        typer.secho(
-            f"Project is already guarded: {config.sentinel=}, unguard first.",
-            fg=typer.colors.GREEN,
-        )
-        raise typer.Exit(1)
+        if cg.files == cg.targets:
+            typer.secho(
+                f"Project is already guarded, nothing to do.",
+                fg=typer.colors.GREEN,
+            )
+            raise typer.Exit(0)
+        else:
+            _log.debug(f"Project is already guarded, but not all files are guarded.")
+            _unguard(source_dir)  # get everything back and recreate with new config
 
     _log.info(f"Guarding {source_dir=}")
 
     cg.create_sentinel()
     try:
-        cg.create_bkp(cg.source_dir)
+        cg.create_bkp(cg.source_dir, cg.targets)
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
         cg.delete_dir(dir_=cg.source_dir / CONFGUARD_BKP_DIR)
@@ -63,13 +67,13 @@ def _guard(source_dir: Path) -> ConfGuard:
 
     try:
         cg.move_files()
-        cg.create_lk()
+        cg.create_lk(cg.targets)
         cg.back_create()
     except Exception as e:
         typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
-        cg.remove_lk()
+        cg.remove_lk(cg.targets)
         cg.back_remove()
-        cg.restore_bkp(cg.source_dir)
+        cg.restore_bkp(cg.source_dir, cg.targets)
         cg.remove_sentinel()
         raise typer.Exit(1)
     finally:
@@ -110,7 +114,7 @@ def _unguard(source_dir: Path) -> ConfGuard:
     _log.info(f"Un-guarding {source_dir=}")
 
     try:
-        cg.create_bkp(cg.target_dir)
+        cg.create_bkp(cg.target_dir, cg.files)
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
         cg.delete_dir(dir_=cg.target_dir / CONFGUARD_BKP_DIR)
@@ -119,15 +123,15 @@ def _unguard(source_dir: Path) -> ConfGuard:
         raise typer.Exit(1)
 
     try:
-        cg.remove_lk()
+        cg.remove_lk(cg.files)
         cg.back_remove()
         cg.unmove_files()
         cg.remove_sentinel()
     except Exception as e:
         typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
-        cg.restore_bkp(cg.target_dir)
+        cg.restore_bkp(cg.target_dir, cg.files)
         typer.secho(f"Restoring links.")
-        cg.create_lk()
+        cg.create_lk(cg.files)
         cg.back_create()
         raise typer.Exit(1)
     finally:
