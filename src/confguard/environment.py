@@ -42,13 +42,6 @@ class Environment(BaseSettings):
     def dbfile(self):
         return f"{self.twbm_db_url.split('sqlite:///')[-1]}"
 
-    @property
-    def sentinel(self) -> str | None:
-        try:
-            return self.confguard["_internal_"]["sentinel"]
-        except KeyError:
-            return None
-
     def log_config(self) -> dict:
         cfg = self.dict()
         skip_keys = (

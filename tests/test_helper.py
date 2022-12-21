@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from confguard.services import _create_relative_path
+from confguard.helper import serialize_to_base64, deserialize_from_base64, _create_relative_path
 from tests.test_services import _log
 
 
@@ -59,3 +59,42 @@ def test_find_relative_path(source, target, expected):
 def test_find_relative_path_builtin(source, target, expected):
     rel_path = _create_relative_path(source, target)
     assert Path(rel_path) == Path(expected)
+
+
+FILES = [
+    "file1____________________________________________________________",
+    "file2____________________________________________________________",
+    "file3____________________________________________________________",
+    "file4____________________________________________________________",
+    "file5____________________________________________________________",
+    "file1____________________________________________________________",
+    "file2____________________________________________________________",
+    "file3____________________________________________________________",
+    "file4____________________________________________________________",
+    "file5____________________________________________________________",
+]
+
+
+def test_serialize_to_base64():
+
+    # Serialize the list to a base64-encoded string
+    serialized = serialize_to_base64(FILES)
+
+    # Print the serialized string
+    print(f"\n{serialized}")
+    assert isinstance(serialized, str)
+
+
+def test_deserialize_to_base64():
+    serialized = """
+gASVYwEAAAAAAABdlCiMQWZpbGUxX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19flIxBZmlsZTJfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX1+UjEFmaWxlM19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX5SMQWZpbGU0X19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19flIxBZmlsZTVfX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX1+UaAFoAmgD
+aARoBWUu
+    """
+    obj = deserialize_from_base64(serialized)
+    print(f"\n{obj}")
+    assert obj == FILES

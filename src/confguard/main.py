@@ -3,29 +3,13 @@ from pathlib import Path
 
 import typer
 
-from confguard.environment import CONFGUARD_BKP_DIR, config
-from confguard.services import Files, Links, Sentinel
+from adapter import TomlRepoConfGuard
+from confguard.environment import CONFGUARD_BKP_DIR, config, CONFGUARD_CONFIG_FILE
+from confguard.exceptions import InvalidConfigError
+from confguard.model import ConfGuard
 
 _log = logging.getLogger(__name__)
 app = typer.Typer(help="Save sensitive configuration in a save place")
-
-
-def _load_confguard_config(sentinel):
-    try:
-        sentinel.load_confguard()
-        _log.debug(config.confguard)
-    except Exception as e:
-        typer.secho(f"Error loading configuration: {e}", fg=typer.colors.RED)
-        raise typer.Exit(1)
-    cfg = config.confguard.get("config")
-    if cfg is None:
-        typer.secho("Invalid config, check '.confguard' format. (config section)", fg=typer.colors.RED)
-        raise typer.Exit(1)
-    targets = cfg.get("targets")
-    if targets is None:
-        typer.secho("Invalid config, check '.confguard' format. (no targets)", fg=typer.colors.RED)
-        raise typer.Exit(1)
-    return targets
 
 
 @app.command()
@@ -40,14 +24,25 @@ def guard(
     CAVEAT: relative linking cannot span mounts, absolute linking can
     """
     source_dir = Path(source_dir).expanduser().resolve()
-    _guard(source_dir)
+    if not (source_dir / CONFGUARD_CONFIG_FILE).exists():
+        typer.secho(
+            f"Configuration file {CONFGUARD_CONFIG_FILE} not found in {source_dir}",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(1)
+    _ = _guard(source_dir)
 
 
-def _guard(source_dir: Path) -> None:
-    sentinel = Sentinel(source_dir=source_dir)
-    targets = _load_confguard_config(sentinel)
+def _guard(source_dir: Path) -> ConfGuard:
+    repo = TomlRepoConfGuard(source_dir=source_dir)
+    try:
+        cg = repo.get()
+    except InvalidConfigError as e:
+        typer.secho(str(e), fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
 
-    if config.sentinel is not None:
+    if cg.sentinel is not None:
         typer.secho(
             f"Project is already guarded: {config.sentinel=}, unguard first.",
             fg=typer.colors.GREEN,
@@ -56,34 +51,31 @@ def _guard(source_dir: Path) -> None:
 
     _log.info(f"Guarding {source_dir=}")
 
-    sentinel.create()
-    bkp_dir = source_dir / CONFGUARD_BKP_DIR
-    target_dir = config.confguard_path / config.sentinel
-
-    files = Files(
-        rel_target_dir=config.sentinel, source_dir=source_dir, targets=targets
-    )
+    cg.create_sentinel()
     try:
-        files.create_bkp(source_dir=source_dir, bkp_dir=bkp_dir)
+        cg.create_bkp(cg.source_dir)
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
-        files.delete_dir(dir_=bkp_dir)
-        sentinel.remove()
+        cg.delete_dir(dir_=cg.source_dir / CONFGUARD_BKP_DIR)
+        cg.remove_sentinel()
+        repo.add(cg)  # save it
         raise typer.Exit(1)
 
-    lks = Links(source_dir=source_dir, target_dir=target_dir, targets=targets)
     try:
-        files.move_files(source_dir=source_dir, target_dir=target_dir)
-        lks.create()
-        lks.back_create()
+        cg.move_files()
+        cg.create_lk()
+        cg.back_create()
     except Exception as e:
         typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
-        lks.remove()
-        lks.back_remove()
-        files.restore_bkp(source_dir=source_dir, bkp_dir=bkp_dir)
+        cg.remove_lk()
+        cg.back_remove()
+        cg.restore_bkp(cg.source_dir)
+        cg.remove_sentinel()
         raise typer.Exit(1)
     finally:
-        files.delete_dir(dir_=bkp_dir)
+        repo.add(cg)  # save it
+        cg.delete_dir(dir_=cg.source_dir / CONFGUARD_BKP_DIR)
+    return cg
 
 
 @app.command()
@@ -97,52 +89,51 @@ def unguard(
     Revert changes made by `guard`.
     """
     source_dir = Path(source_dir).expanduser().resolve()
-    _unguard(source_dir)
+    _ = _unguard(source_dir)
 
 
-def _unguard(source_dir: Path) -> None:
-    sentinel = Sentinel(source_dir=source_dir)
-    targets = _load_confguard_config(sentinel)
+def _unguard(source_dir: Path) -> ConfGuard:
+    repo = TomlRepoConfGuard(source_dir=source_dir)
+    try:
+        cg = repo.get()
+    except InvalidConfigError as e:
+        typer.secho(str(e), fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
 
-    if config.sentinel is None:
+    if cg.sentinel is None:
         typer.secho(
-            f"Project is un-guarded: {config.sentinel=}, nothing to do.",
+            f"Project is not guarded, nothing to do.",
             fg=typer.colors.GREEN,
         )
         raise typer.Exit(1)
+
     _log.info(f"Un-guarding {source_dir=}")
 
-    _sentinel = config.sentinel  # save sentinel for rollback (TODO)
-
-    target_dir = config.confguard_path / config.sentinel
-    bkp_dir = config.confguard_path / config.sentinel / CONFGUARD_BKP_DIR
-
-    files = Files(
-        rel_target_dir=config.sentinel, source_dir=source_dir, targets=targets
-    )
     try:
-        files.create_bkp(source_dir=target_dir, bkp_dir=bkp_dir)
+        cg.create_bkp(cg.target_dir)
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
-        files.delete_dir(dir_=bkp_dir)
-        Sentinel(source_dir=source_dir).remove()
+        cg.delete_dir(dir_=cg.target_dir / CONFGUARD_BKP_DIR)
+        cg.remove_sentinel()
+        repo.add(cg)  # save it
         raise typer.Exit(1)
 
-    lks = Links(source_dir=source_dir, target_dir=target_dir, targets=targets)
     try:
-        lks.remove()
-        lks.back_remove()
-        files.return_files(source_dir=source_dir, target_dir=target_dir)
-        sentinel.remove()  # TODO: tx safety (should be recreated if rollback)
+        cg.remove_lk()
+        cg.back_remove()
+        cg.unmove_files()
+        cg.remove_sentinel()
     except Exception as e:
         typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
-        files.restore_bkp(source_dir=target_dir, bkp_dir=bkp_dir)
+        cg.restore_bkp(cg.target_dir)
         typer.secho(f"Restoring links.")
-        lks.create()
-        lks.back_create()
+        cg.create_lk()
+        cg.back_create()
         raise typer.Exit(1)
     finally:
-        files.delete_dir(dir_=bkp_dir)
+        repo.add(cg)  # save it
+        cg.delete_dir(dir_=cg.target_dir / CONFGUARD_BKP_DIR)
+    return cg
 
 
 @app.command()

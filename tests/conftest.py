@@ -6,13 +6,12 @@ import pytest
 from tomlkit import table
 
 from confguard.environment import CONFGUARD_BKP_DIR, ROOT_DIR, config
-from confguard.services import Sentinel
 
 _log = logging.getLogger(__name__)
 log_fmt = r"%(asctime)-15s %(levelname)s %(name)s %(funcName)s:%(lineno)d %(message)s"
 logging.basicConfig(format=log_fmt, level=logging.DEBUG, datefmt="%Y-%m-%d %H:%M:%S")
 
-SENTINEL = Path("test_proj-1234")
+SENTINEL = "test_proj-1234"
 TARGET_DIR = config.confguard_path / SENTINEL
 TEST_PROJ = ROOT_DIR / "tests/resources/test_proj"
 REF_PROJ = ROOT_DIR / "tests/resources/ref_proj"
@@ -43,7 +42,6 @@ def test_proj():
     shutil.copytree(REF_PROJ / ".run", TEST_PROJ / ".run")
     shutil.copyfile(REF_PROJ / ".envrc", TEST_PROJ / ".envrc")
     shutil.copyfile(REF_PROJ / ".confguard", TEST_PROJ / ".confguard")
-    # config.load_confguard()
     _ = None
 
 
@@ -54,14 +52,3 @@ def clear_test_proj():
     Path(TEST_PROJ / ".envrc").unlink(missing_ok=True)  # will be linked
     Path(TEST_PROJ / "xxx/xxx.txt").unlink(missing_ok=True)  # will be linked
 
-
-@pytest.fixture(autouse=False)
-def create_sentinel():
-    s = Sentinel(source_dir=TEST_PROJ)
-    tab = table()
-    tab.add("sentinel", str(SENTINEL))
-    config.confguard["_internal_"] = tab
-    config.confguard["_internal_"].comment("DO NOT EDIT FROM HERE")
-    # noinspection PyProtectedMember
-    s._save_confguard()
-    Path(TARGET_DIR).mkdir(parents=True, exist_ok=True)

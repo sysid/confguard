@@ -29,6 +29,7 @@ scriv = "*"
 #sphinx-rtd-theme = "*"
 # required for tests to find imports
 #confguard = {editable = true, path = "."}
+mypy = "*"
 
 [requires]
 python_version = "3.11"

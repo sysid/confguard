@@ -1,11 +1,8 @@
-import shutil
 from pathlib import Path
 
-import pytest
-import typer
 from typer.testing import CliRunner
 
-from confguard.environment import ROOT_DIR, config
+from confguard.environment import config
 from confguard.main import _guard, _unguard, app
 from tests.conftest import TEST_PROJ
 
@@ -36,14 +33,14 @@ class TestGuard:
 
 
 def test__guard():
-    _guard(source_dir=TEST_PROJ)
+    cg = _guard(source_dir=TEST_PROJ)
 
     # then confguard directory is there
     confguard = list(Path(config.confguard_path).glob("**/test_proj-*"))
     assert len(confguard) == 1
     confguard = confguard[0]
     assert confguard.is_dir()
-    assert confguard.parts[-1] == config.sentinel
+    assert confguard.name == cg.sentinel
 
     # then: confguard directory contains the files and dirs
     assert (confguard / ".envrc").is_file()
@@ -60,16 +57,16 @@ def test__guard():
     assert Path(TEST_PROJ / ".run").resolve() == Path(confguard / ".run")
 
     # then backlink created
-    assert Path(confguard / f".{config.sentinel}.confguard").resolve() == TEST_PROJ
+    assert Path(confguard / f".{cg.sentinel}.confguard").resolve() == TEST_PROJ
 
 
 def test__unguard():
     # given
-    _guard(source_dir=TEST_PROJ)
+    _ = _guard(source_dir=TEST_PROJ)
     confguard = list(Path(config.confguard_path).glob("**/test_proj-*"))[0]
 
     # when
-    _unguard(source_dir=TEST_PROJ)
+    cg = _unguard(source_dir=TEST_PROJ)
 
     # then confguard directory is gone
     assert not confguard.exists()
@@ -77,4 +74,4 @@ def test__unguard():
     assert (TEST_PROJ / ".envrc").is_file()
     assert (TEST_PROJ / ".run").is_dir()
     assert (TEST_PROJ / "xxx/xxx.txt").is_file()
-    assert config.sentinel is None
+    assert cg.sentinel is None

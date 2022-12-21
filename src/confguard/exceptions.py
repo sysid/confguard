@@ -6,13 +6,9 @@ class BackupExistError(ConfGuardError):
     """A custom exception class for MyProject."""
 
 
-class BackupNotDeleted(ConfGuardError):
+class DirectoryNotDeleted(ConfGuardError):
     """A custom exception class for MyProject."""
 
 
-class FileDoesNotExistError(ConfGuardError):
+class InvalidConfigError(ConfGuardError):
     """A custom exception class for MyProject."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args)
-        self.target = kwargs.get("target")
