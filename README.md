@@ -6,12 +6,13 @@
 
 This is a simple tool to help managing sensitive configuration files outside of your project.
 
-Just **"guard"** your project and sensitive files are moved to a safe place and back-linked
-into your project. The links can be committed without risk.
+Just **"guard"** your project and sensitive files are moved to a safe place where you can
+handle them seperately (e.g. encrypt).
 
-Project can be re-guarded any time, potential changes will be updated if necessary.
-When the targets in .confguard change re-run the guarding process.
+The created links can be committed without risk.
 
+Guarding is idempotent, changes to ``confguard`` will be applied. Un-guarding will restore
+the original state. State is being kept in ``confguard`` file.
 
 ## Quickstart
 ```bash
@@ -29,6 +30,8 @@ Commands:
 ```console
     $ pip install confguard
 ```
+
+![confguard_example](./docs/confguard_example.png)
 
 ## Changelog
 [CHANGELOG.md](https://github.com/sysid/confguard/blob/master/CHANGELOG.md)
