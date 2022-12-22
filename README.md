@@ -25,8 +25,7 @@ Commands:
   unguard        Un-guards a directory.
 ```
 
-confguard is available on PyPI and can be installed with `pip <https://pip.pypa.io>`_.
-
+#### Install
 ```console
     $ pip install confguard
 ```
