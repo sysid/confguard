@@ -10,6 +10,7 @@ typer = "*"
 pyyaml = "*"
 tomlkit = "*"
 confguard = {editable = true, path = "."}
+rich = "*"
 
 [dev-packages]
 black = "*"

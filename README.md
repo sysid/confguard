@@ -2,17 +2,16 @@
 
 [![PyPI Version][pypi-image]][pypi-url]
 
-> Save configuration files outside project in save place
+> Save configuration files outside project in save place.
 
-This is a simple tool to help managing sensitive configuration files outside of your project.
+Simple tool to manage sensitive configuration files outside of a project.
 
-Just **"guard"** your project and sensitive files are moved to a safe place where you can
-handle them seperately (e.g. encrypt).
+**Guard** project by moving sensitive files/directories to a safe place
+where they can be handled properly. Symlinks replace them.
 
-The created links can be committed without risk.
-
-Guarding is idempotent, changes to ``confguard`` will be applied. Un-guarding will restore
-the original state. State is being kept in ``confguard`` file.
+- Guard is idempotent, changes to ``.confguard`` will be picked up by re-run.
+- Un-guarding restores original state. 
+- State is being kept in ``.confguard`` file.
 
 ## Quickstart
 ```bash

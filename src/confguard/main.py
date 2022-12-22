@@ -1,7 +1,11 @@
 import logging
 from pathlib import Path
 
+from rich.logging import RichHandler
+
 import typer
+from rich.theme import Theme
+from rich.console import Console
 
 from confguard.adapter import TomlRepoConfGuard
 from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE, config
@@ -137,10 +141,8 @@ def _unguard(source_dir: Path) -> ConfGuard:
         cg.unmove_files()
         cg.remove_sentinel()
     except Exception as e:
-        typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
+        _log.error(f"Error occurred, rolling back: {e}")
         cg.restore_bkp(cg.target_dir, cg.files)
-        typer.secho(f"Rollback: Restoring links.")
-        print("xxxxxxxxxxxxxxxxxxxxx")
         try:
             cg.create_lk(cg.files)
         except Exception as e:
@@ -149,7 +151,6 @@ def _unguard(source_dir: Path) -> ConfGuard:
             cg.back_create()
         except Exception as e:
             _log.error(f"Manual intervention required: {e}")
-        print("xxxxxxxxxxxxxxxxxxxxx")
         raise typer.Abort(1)
     finally:
         repo.add(cg)  # save it
@@ -204,14 +205,32 @@ def _find_and_link(source_dir: Path) -> ConfGuard:
 def main(
     verbose: bool = typer.Option(False, "-v", "--verbose", help="verbosity"),
 ):
-    log_fmt = r"%(asctime)-15s %(levelname)-7s %(message)s"
+    # log_fmt = r"%(asctime)-15s %(levelname)-7s %(message)s"
+    log_fmt = r"%(message)s"
+    # https://github.com/Textualize/rich/issues/1161#issuecomment-813882224
+    # https://stackoverflow.com/questions/69348880/is-it-possible-to-use-background-aware-color-choices
+    console = Console(
+        theme=Theme({
+            "logging.level.debug": "yellow",
+            "logging.level.info": "bright_black",
+            "logging.level.warning": "bright_black",
+            "logging.level.error": "bright_red"
+        }),
+        highlight=False,
+    )
     if verbose:
         logging.basicConfig(
-            format=log_fmt, level=logging.DEBUG, datefmt="%m-%d %H:%M:%S"
+            format=log_fmt,
+            level=logging.DEBUG,
+            datefmt="%m-%d %H:%M:%S",
+            handlers=[RichHandler(show_time=False, show_path=False, console=console)],
         )
     else:
         logging.basicConfig(
-            format=log_fmt, level=logging.INFO, datefmt="%m-%d %H:%M:%S"
+            format=log_fmt,
+            level=logging.INFO,
+            datefmt="%m-%d %H:%M:%S",
+            handlers=[RichHandler(show_time=False, show_path=False, console=console)],
         )
 
 

@@ -82,7 +82,7 @@ class ConfGuard:
                     elif src_path.is_dir():
                         shutil.copytree(src_path, bkp_path)
                 else:
-                    _log.warning(f"{src_path} is a symlink. Skipping backup.")
+                    _log.info(f"{src_path} is a symlink. Skipping backup.", extra={"highlighter": None})
             else:
                 _log.warning(f"{src_path} does not exist")
 
@@ -110,13 +110,13 @@ class ConfGuard:
                         src_path.unlink()
 
                     if src_path.exists():
-                        _log.info(f"{src_path} exists, do nothing")
+                        _log.info(f"{src_path} exists, do nothing", extra={"highlighter": None})
                     else:
-                        _log.info(f"Restoring {src_path}.")
+                        _log.info(f"Restoring {src_path}.", extra={"highlighter": None})
                         shutil.copy2(bkp_path, src_path)
 
                 elif bkp_path.is_dir():
-                    _log.info(f"Restoring {src_path}.")
+                    _log.info(f"Restoring {src_path}.", extra={"highlighter": None})
                     shutil.copytree(bkp_path, src_path, dirs_exist_ok=True)
             else:
                 _log.warning(
@@ -158,8 +158,8 @@ class ConfGuard:
                 _log.debug(f"Removing link {src_path}")
                 src_path.unlink(missing_ok=True)
             else:
-                _log.warning(
-                    f"File {str(src_path)} is not a symlink. Skipping removal."
+                _log.info(
+                    f"File {str(src_path)} is not a symlink. Skipping removal.", extra={"highlighter": None}
                 )
 
     def back_create(self) -> None:
