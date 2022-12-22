@@ -100,7 +100,7 @@ class TomlRepoConfGuard:
 
         with open(self.path, mode="wt", encoding="utf-8") as fp:
             tomlkit.dump(self.toml, fp)
-        _log.debug(f"Saved config confguard: {self.path=}")
+        _log.debug(f"Saved config confguard: {self.path}")
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.source_dir=})"

@@ -51,7 +51,7 @@ class ConfGuard:
                 tgt_path.parent.exists() or tgt_path.parent.mkdir(parents=True)
                 src_path.rename(tgt_path)
             else:
-                _log.warning(f"File {src_path=} does not exist")
+                _log.warning(f"{src_path} does not exist")
 
     def move_files(self) -> None:
         assert self.sentinel is not None, "Sentinel not created"
@@ -82,9 +82,9 @@ class ConfGuard:
                     elif src_path.is_dir():
                         shutil.copytree(src_path, bkp_path)
                 else:
-                    _log.warning(f"File {src_path=} is a symlink. Skipping backup.")
+                    _log.warning(f"{src_path} is a symlink. Skipping backup.")
             else:
-                _log.warning(f"File {src_path=} does not exist")
+                _log.warning(f"{src_path} does not exist")
 
     def create_bkp(self, dir_: Path, targets: list[str]) -> None:
         bkp_dir = dir_ / CONFGUARD_BKP_DIR
@@ -105,22 +105,22 @@ class ConfGuard:
 
                     if src_path.exists() and src_path.is_symlink():
                         _log.warning(
-                            f"{src_path=} is already symlinked, backup will overwrite it with original file"
+                            f"{src_path} is already symlinked, backup will overwrite it with original file"
                         )
                         src_path.unlink()
 
                     if src_path.exists():
-                        _log.info(f"{src_path=} exists, do nothing")
+                        _log.info(f"{src_path} exists, do nothing")
                     else:
-                        _log.info(f"Restoring {src_path=}.")
+                        _log.info(f"Restoring {src_path}.")
                         shutil.copy2(bkp_path, src_path)
 
                 elif bkp_path.is_dir():
-                    _log.info(f"Restoring {src_path=}.")
+                    _log.info(f"Restoring {src_path}.")
                     shutil.copytree(bkp_path, src_path, dirs_exist_ok=True)
             else:
                 _log.warning(
-                    f"File {bkp_path=} does not exist in backup. Cannot restore."
+                    f"File {bkp_path} does not exist in backup. Cannot restore."
                 )
 
     def restore_bkp(self, dir_: Path, targets: list[str]) -> None:

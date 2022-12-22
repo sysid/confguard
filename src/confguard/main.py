@@ -57,7 +57,7 @@ def _guard(source_dir: Path) -> ConfGuard:
             _log.debug(f"Project is already guarded, but not all files are guarded.")
             _unguard(source_dir)  # get everything back and recreate with new config
 
-    _log.info(f"Guarding {source_dir=}")
+    _log.info(f"Guarding {source_dir}")
 
     cg.create_sentinel()
     try:
@@ -67,7 +67,7 @@ def _guard(source_dir: Path) -> ConfGuard:
         cg.delete_dir(dir_=cg.source_dir / CONFGUARD_BKP_DIR)
         cg.remove_sentinel()
         repo.add(cg)  # save it
-        raise typer.Exit(1)
+        raise typer.Abort(1)
 
     try:
         cg.move_files()
@@ -79,7 +79,7 @@ def _guard(source_dir: Path) -> ConfGuard:
         cg.back_remove()
         cg.restore_bkp(cg.source_dir, cg.targets)
         cg.remove_sentinel()
-        raise typer.Exit(1)
+        raise typer.Abort(1)
     finally:
         repo.add(cg)  # save it
         cg.delete_dir(dir_=cg.source_dir / CONFGUARD_BKP_DIR)
@@ -120,7 +120,7 @@ def _unguard(source_dir: Path) -> ConfGuard:
         )
         raise typer.Exit(1)
 
-    _log.info(f"Un-guarding {source_dir=}")
+    _log.info(f"Un-guarding {source_dir}")
 
     try:
         cg.create_bkp(cg.target_dir, cg.files)
@@ -129,7 +129,7 @@ def _unguard(source_dir: Path) -> ConfGuard:
         cg.delete_dir(dir_=cg.target_dir / CONFGUARD_BKP_DIR)
         cg.remove_sentinel()
         repo.add(cg)  # save it
-        raise typer.Exit(1)
+        raise typer.Abort(1)
 
     try:
         cg.remove_lk(cg.files)
@@ -139,10 +139,18 @@ def _unguard(source_dir: Path) -> ConfGuard:
     except Exception as e:
         typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
         cg.restore_bkp(cg.target_dir, cg.files)
-        typer.secho(f"Restoring links.")
-        cg.create_lk(cg.files)
-        cg.back_create()
-        raise typer.Exit(1)
+        typer.secho(f"Rollback: Restoring links.")
+        print("xxxxxxxxxxxxxxxxxxxxx")
+        try:
+            cg.create_lk(cg.files)
+        except Exception as e:
+            _log.warning(f"Manual intervention required: {e}")
+        try:
+            cg.back_create()
+        except Exception as e:
+            _log.error(f"Manual intervention required: {e}")
+        print("xxxxxxxxxxxxxxxxxxxxx")
+        raise typer.Abort(1)
     finally:
         repo.add(cg)  # save it
         cg.delete_dir(dir_=cg.target_dir / CONFGUARD_BKP_DIR)
