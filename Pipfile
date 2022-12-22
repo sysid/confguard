@@ -9,6 +9,7 @@ pydantic = {extras = ["dotenv"], version = "*"}  # required by environment.py
 typer = "*"
 pyyaml = "*"
 tomlkit = "*"
+confguard = {editable = true, path = "."}
 
 [dev-packages]
 black = "*"

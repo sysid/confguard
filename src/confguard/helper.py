@@ -24,6 +24,18 @@ def deserialize_from_base64(base64_str: str) -> Any:
     return obj
 
 
+def _create_relative_path(source: str, target: str) -> Path:
+    source_path = Path(source).parent
+    target_path = Path(target).parent
+
+    if not (source_path.is_absolute() and target_path.is_absolute()):
+        raise ValueError("Both source and target must be absolute paths")
+
+    name = Path(target).name  # Gotcha: source_path.name is not the same as target_path.name
+    rel_path = os.path.relpath(target_path, source_path)
+    return Path(rel_path) / name
+
+
 if __name__ == "__main__":
     # Create a list of strings
     files = [
@@ -47,15 +59,3 @@ if __name__ == "__main__":
 
     obj = deserialize_from_base64(serialized)
     print(obj)
-
-
-def _create_relative_path(source: str, target: str) -> Path:
-    source_path = Path(source).parent
-    target_path = Path(target).parent
-
-    if not (source_path.is_absolute() and target_path.is_absolute()):
-        raise ValueError("Both source and target must be absolute paths")
-
-    name = Path(target).name  # Gotcha: source_path.name is not the same as target_path.name
-    rel_path = os.path.relpath(target_path, source_path)
-    return Path(rel_path) / name
