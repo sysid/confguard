@@ -1,47 +1,38 @@
 # confguard
 
-Project can be re-guarded any time, potential changes will be updated if necessary.
-When the targets in .confguard change re-run the guarding process.
-
 [![PyPI Version][pypi-image]][pypi-url]
-[![Build Status][build-image]][build-url]
-[![Code Coverage][coverage-image]][coverage-url]
 
 > Save configuration files outside project in save place
 
+This is a simple tool to help managing sensitive configuration files outside of your project.
 
-Quickstart
-==========
+Just **"guard"** your project and sensitive files are moved to a safe place and back-linked
+into your project. The links can be committed without risk.
+
+Project can be re-guarded any time, potential changes will be updated if necessary.
+When the targets in .confguard change re-run the guarding process.
+
+
+## Quickstart
+```bash
+Usage: confguard [OPTIONS] COMMAND [ARGS]...
+
+  Save sensitive configuration in a save place
+
+Commands:
+  find-and-link  Missing .confguard file, try to find it and link it...
+  guard          Guards a directory.
+  unguard        Un-guards a directory.
+```
 
 confguard is available on PyPI and can be installed with `pip <https://pip.pypa.io>`_.
 
-.. code-block:: console
-
+```console
     $ pip install confguard
-
-After installing confguard you can use it like any other Python module.
-
-Here is a simple example:
-
-.. code-block:: python
-
-    import confguard
-    # Fill this section in with the common use-case.
-
-The `API Reference <http://confguard.readthedocs.io>`_ provides API-level documentation.
-
+```
 
 ## Changelog
-[CHANGELOG.md](https://github.com/sysid/playbook/blob/master/CHANGELOG.md)
-
-## Scratch
-for f in *; do cp --remove-destination source/$f $f; done
-find ./ -type l -print0|xargs -0 -n1 -i sh -c 'cp --remove-destination $(readlink "{}") "{}" '
-for f in *; do cp --remove-destination $(readlink "$f") "$f"; done
-
-find ./ -not -path './.venv/*' -not -path './.git/*' -type l -print0|xargs -0 -i sh -c 'echo $(readlink "{}") "{}" '
-
-
+[CHANGELOG.md](https://github.com/sysid/confguard/blob/master/CHANGELOG.md)
 
 <!-- Badges -->
 

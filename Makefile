@@ -65,11 +65,6 @@ test-proj:  ## test-proj: create ~/xxx/test_proj to test installed confguard
 	rm -fr /tmp/confguard
 	cp -a tests/resources/ref_proj tests/resources/test_proj
 
-.PHONY: links
-links:  test-proj-xxx ## links
-	pushd ~/xxx/test_proj && CONFGUARD_PATH=/tmp/confguard confguard -v guard .
-
-
 ################################################################################
 # Building, Deploying \
 building:  ## ##################################################################
