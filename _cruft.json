@@ -1,0 +1,26 @@
+{
+  "template": "/Users/Q187392/dev/s/public/confguard/../../private/py-template",
+  "commit": "e7dda402f211537eb072f732836daa4f605797fd",
+  "context": {
+    "cookiecutter": {
+      "package_display_name": "confguard",
+      "package_name": "confguard",
+      "project_name": "confguard",
+      "repo_name": "confguard",
+      "github_repo_name": "confguard",
+      "github_name": "confguard",
+      "package_short_description": "Save configuration files outside project in save place",
+      "version": "1.0.0",
+      "full_name": "sysid",
+      "email": "sysid@gmx.de",
+      "github_user_name": "sysid",
+      "license": "BSD license",
+      "year": "2022",
+      "_extensions": [
+        "jinja2_time.TimeExtension"
+      ],
+      "_template": "/Users/Q187392/dev/s/public/confguard/../../private/py-template"
+    }
+  },
+  "directory": null
+}
