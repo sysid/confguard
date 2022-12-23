@@ -1,11 +1,10 @@
 import logging
 from pathlib import Path
 
-from rich.logging import RichHandler
-
 import typer
-from rich.theme import Theme
 from rich.console import Console
+from rich.logging import RichHandler
+from rich.theme import Theme
 
 from confguard.adapter import TomlRepoConfGuard
 from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE, config
@@ -210,12 +209,14 @@ def main(
     # https://github.com/Textualize/rich/issues/1161#issuecomment-813882224
     # https://stackoverflow.com/questions/69348880/is-it-possible-to-use-background-aware-color-choices
     console = Console(
-        theme=Theme({
-            "logging.level.debug": "yellow",
-            "logging.level.info": "bright_black",
-            "logging.level.warning": "bright_black",
-            "logging.level.error": "bright_red"
-        }),
+        theme=Theme(
+            {
+                "logging.level.debug": "yellow",
+                "logging.level.info": "bright_black",
+                "logging.level.warning": "bright_black",
+                "logging.level.error": "bright_red",
+            }
+        ),
         highlight=False,
     )
     if verbose:

@@ -10,7 +10,7 @@ Simple tool to manage sensitive configuration files outside of a project.
 where they can be handled properly. Symlinks replace them.
 
 - Guard is idempotent, changes to ``.confguard`` will be picked up by re-run.
-- Un-guarding restores original state. 
+- Un-guarding restores original state.
 - State is being kept in ``.confguard`` file.
 
 ## Quickstart
