@@ -2,7 +2,7 @@
 
 [![PyPI Version][pypi-image]][pypi-url]
 
-> Save configuration files outside project in save place.
+> Save sensitive configuration files outside project in save place.
 
 Simple tool to manage sensitive configuration files outside of a project.
 
