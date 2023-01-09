@@ -67,7 +67,7 @@ test-proj:  ## test-proj: create ~/xxx/test_proj to test installed confguard
 
 ################################################################################
 # Building, Deploying \
-building:  ## ##################################################################
+BUILDING:  ## ##################################################################
 
 .PHONY: build
 build: clean format isort  ## format and build
@@ -198,15 +198,15 @@ clean-pyc: ## remove Python file artifacts
 ################################################################################
 # Misc \
 MISC:  ## ############################################################
-
 define PRINT_HELP_PYSCRIPT
 import re, sys
 
 for line in sys.stdin:
-	match = re.match(r'^([a-zA-Z0-9_-]+):.*?## (.*)$$', line)
+	match = re.match(r'^([%a-zA-Z0-9_-]+):.*?## (.*)$$', line)
 	if match:
 		target, help = match.groups()
-		print("\033[36m%-20s\033[0m %s" % (target, help))
+		if target != "dummy":
+			print("\033[36m%-20s\033[0m %s" % (target, help))
 endef
 export PRINT_HELP_PYSCRIPT
 

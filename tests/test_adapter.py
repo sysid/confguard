@@ -11,7 +11,13 @@ class TestTomlRepoConfGuard:
 
         assert isinstance(cg, ConfGuard)
         assert cg.targets == [".envrc", ".run", "xxx/xxx.txt"]
-        _ = None
+
+    def test_get_with_files(self):
+        repo = TomlRepoConfGuard(source_dir=TEST_PROJ / "..")
+        cg = repo.get()
+
+        assert isinstance(cg, ConfGuard)
+        assert cg.files == [".envrc", ".run", "xxx/xxx.txt"]
 
     def test_add_without_change(self):
         repo = TomlRepoConfGuard(source_dir=TEST_PROJ)

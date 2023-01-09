@@ -69,6 +69,7 @@ class TomlRepoConfGuard:
         cg.sentinel = sentinel
         cg.target_dir = config.confguard_path / sentinel
         cg.files = files
+        _log.debug(f"{sentinel=}, {targets=}, {files=}")
         return cg
 
     def add(self, confguard: ConfGuard) -> None:
