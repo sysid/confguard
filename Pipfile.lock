@@ -45,7 +45,7 @@
         },
         "pydantic": {
             "extras": [
-
+                "dotenv"
             ],
             "hashes": [
                 "sha256:05a81b006be15655b2a1bae5faa4280cf7c81d0e09fcb49b342ebf826abe5a72",
@@ -847,11 +847,11 @@
         },
         "scriv": {
             "hashes": [
-                "sha256:a7b8769cf99fce19263445fa48caba30f2ade0f059decc7a8e94462620550f9c",
-                "sha256:ddbe78e7903b80d6fbc8080b2c916aca7f1fd077be124972374d0e2e2045f921"
+                "sha256:26b65a903da7d9aefc712a0d4150b8638302b4758bd428bbd773dd918c61c621",
+                "sha256:bb61c30fea73158a4d18c28bbb57821c308245683efb0d897bd45e4a7856b472"
             ],
             "index": "pypi",
-            "version": "==1.0.0"
+            "version": "==1.2.0"
         },
         "setuptools": {
             "hashes": [
