@@ -1,0 +1,9 @@
+#  vim: set ts=4 sw=4 tw=120 et ft=toml:
+[config]
+targets = ['.envrc', '.run', 'xxx/xxx.txt']
+relative = false
+
+[_internal_] # DO NOT EDIT FROM HERE
+sentinel = "test_proj-947dcae6"
+timestamp = 2023-01-09T10:17:49.604440
+files = """gASVIwAAAAAAAABdlCiMBi5lbnZyY5SMBC5ydW6UjAt4eHgveHh4LnR4dJRlLg=="""

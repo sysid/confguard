@@ -1,10 +1,5 @@
-.. _change-log-label:
 
-Change Log
-==========
+<a id='changelog-1.0.0'></a>
+# 1.0.0 — 2022-12-22
 
-Version History
----------------
-
-0.0.1
-    * Project created.
+Initial release.

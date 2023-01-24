@@ -1,37 +1,39 @@
-confguard
-#########
+# confguard
 
 [![PyPI Version][pypi-image]][pypi-url]
-[![Build Status][build-image]][build-url]
-[![Code Coverage][coverage-image]][coverage-url]
 
-> Save configuration files outside project in save place
+> Save sensitive configuration files outside project in save place.
 
+Simple tool to manage sensitive configuration files outside of a project.
 
-Quickstart
-==========
+**Guard** project by moving sensitive files/directories to a safe place
+where they can be handled properly. Symlinks replace them.
 
-confguard is available on PyPI and can be installed with `pip <https://pip.pypa.io>`_.
+- Guard is idempotent, changes to ``.confguard`` will be picked up by re-run.
+- Un-guarding restores original state.
+- State is being kept in ``.confguard`` file.
 
-.. code-block:: console
+## Quickstart
+```bash
+Usage: confguard [OPTIONS] COMMAND [ARGS]...
 
+  Save sensitive configuration in a save place
+
+Commands:
+  find-and-link  Missing .confguard file, try to find it and link it...
+  guard          Guards a directory.
+  unguard        Un-guards a directory.
+```
+
+#### Install
+```console
     $ pip install confguard
+```
 
-After installing confguard you can use it like any other Python module.
-
-Here is a simple example:
-
-.. code-block:: python
-
-    import confguard
-    # Fill this section in with the common use-case.
-
-The `API Reference <http://confguard.readthedocs.io>`_ provides API-level documentation.
-
+![confguard_example](./docs/confguard_example.png)
 
 ## Changelog
-[CHANGELOG.md](https://github.com/sysid/playbook/blob/master/CHANGELOG.md)
-
+[CHANGELOG.md](https://github.com/sysid/confguard/blob/master/CHANGELOG.md)
 
 <!-- Badges -->
 

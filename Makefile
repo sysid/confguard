@@ -13,7 +13,7 @@ PYTEST	= pytest --log-level=debug --capture=tee-sys --asyncio-mode=auto
 PYTOPT	=
 VENV	= venv
 PIP		= venv/bin/pip
-PACKAGE = $confguard
+PACKAGE = confguard
 
 app_root = .
 app_root ?= .
@@ -38,16 +38,36 @@ coverage:  ## Run tests with coverage
 	python -m xml
 
 .PHONY: test
-test:  ## run tests
-	python -m pytest -ra --junitxml=report.xml --cov-config=setup.cfg --cov-report=xml --cov-report term --cov=$(pkg_src) -vv tests/
+test: test-proj  ## run tests
+	CONFGUARD_PATH=/private/tmp/confguard python -m pytest -ra --junitxml=report.xml --cov-config=setup.cfg --cov-report=xml --cov-report term --cov=$(pkg_src) -vv tests/
 
 .PHONY: tox
 tox:   ## Run tox
 	tox
 
+.PHONY: view-source
+view-source:  ## view-source: visual check
+	@find tests/resources/ -ls
+
+.PHONY: view-target
+view-target:  ## view-target: visual check
+	find /tmp/confguard/ -ls
+
+.PHONY: test-proj-xxx
+test-proj-xxx:  ## test-proj-xxx: create ~/xxx/test_proj to test installed confguard
+	rm -fr ~/xxx/test_proj
+	rm -fr /tmp/confguard
+	cp -a tests/resources/ref_proj ~/xxx/test_proj
+
+.PHONY: test-proj
+test-proj:  ## test-proj: create ~/xxx/test_proj to test installed confguard
+	rm -fr tests/resources/test_proj
+	rm -fr /tmp/confguard
+	cp -a tests/resources/ref_proj tests/resources/test_proj
+
 ################################################################################
 # Building, Deploying \
-building:  ## ##################################################################
+BUILDING:  ## ##################################################################
 
 .PHONY: build
 build: clean format isort  ## format and build
@@ -178,15 +198,15 @@ clean-pyc: ## remove Python file artifacts
 ################################################################################
 # Misc \
 MISC:  ## ############################################################
-
 define PRINT_HELP_PYSCRIPT
 import re, sys
 
 for line in sys.stdin:
-	match = re.match(r'^([a-zA-Z0-9_-]+):.*?## (.*)$$', line)
+	match = re.match(r'^([%a-zA-Z0-9_-]+):.*?## (.*)$$', line)
 	if match:
 		target, help = match.groups()
-		print("\033[36m%-20s\033[0m %s" % (target, help))
+		if target != "dummy":
+			print("\033[36m%-20s\033[0m %s" % (target, help))
 endef
 export PRINT_HELP_PYSCRIPT
 
