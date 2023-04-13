@@ -10,6 +10,7 @@ from confguard import __version__
 from confguard.adapter import TomlRepoConfGuard
 from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE, config
 from confguard.exceptions import InvalidConfigError
+from confguard.helper import normalize_path
 from confguard.model import ConfGuard
 
 _log = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ def _guard(source_dir: Path) -> ConfGuard:
 
     cg.create_sentinel()
     try:
-        cg.create_bkp(cg.source_dir, cg.targets)
+        cg.create_bkp(cg.source_dir, cg.targets, normalizer=lambda x: x)
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
         cg.delete_dir(dir_=cg.source_dir / CONFGUARD_BKP_DIR)
@@ -75,7 +76,7 @@ def _guard(source_dir: Path) -> ConfGuard:
 
     try:
         cg.move_files()
-        cg.create_lk(cg.targets)
+        cg.create_lk(cg.targets, normalizer=normalize_path)
         cg.back_create()
     except Exception as e:
         typer.secho(f"Error occurred, rolling back: {e}", fg=typer.colors.RED)
@@ -127,7 +128,7 @@ def _unguard(source_dir: Path) -> ConfGuard:
     _log.info(f"Un-guarding {source_dir}")
 
     try:
-        cg.create_bkp(cg.target_dir, cg.files)
+        cg.create_bkp(cg.target_dir, cg.files, normalizer=normalize_path)
     except Exception as e:
         typer.secho(f"Error occurred, Aborting: {e}", fg=typer.colors.RED)
         cg.delete_dir(dir_=cg.target_dir / CONFGUARD_BKP_DIR)
@@ -144,7 +145,7 @@ def _unguard(source_dir: Path) -> ConfGuard:
         _log.error(f"Error occurred, rolling back: {e}")
         cg.restore_bkp(cg.target_dir, cg.files)
         try:
-            cg.create_lk(cg.files)
+            cg.create_lk(cg.files, normalizer=normalize_path)
         except Exception as e:
             _log.warning(f"Manual intervention required: {e}")
         try:
@@ -197,7 +198,7 @@ def _find_and_link(source_dir: Path) -> ConfGuard:
     _log.info(f"Found guarded project files for {project}, re-linking it.")
 
     ConfGuard.restore_toml(source_dir, project)
-    _ = _unguard(source_dir)
+    _ = _unguard(source_dir)  # breakpoint here shows restored directory
     return _guard(source_dir)
 
 

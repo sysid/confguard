@@ -54,6 +54,26 @@ def _create_relative_path(source: str, target: str) -> Path:
     return Path(rel_path) / name
 
 
+def normalize_name(name: str) -> str:
+    if name.startswith("."):
+        return f"dot.{name[1:]}"
+    return name
+
+
+def denormalize_name(name: str) -> str:
+    if name.startswith("dot."):
+        return f".{name[4:]}"
+    return name
+
+
+def normalize_path(path: Path) -> Path:
+    return Path(*[normalize_name(p) for p in path.parts])
+
+
+def denormalize_path(path: Path) -> Path:
+    return Path(*[denormalize_name(p) for p in path.parts])
+
+
 if __name__ == "__main__":
     # Create a list of strings
     files = [

@@ -47,8 +47,8 @@ def test__guard():
     assert confguard.name == cg.sentinel
 
     # then: confguard directory contains the files and dirs
-    assert (confguard / ".envrc").is_file()
-    assert (confguard / ".run").is_dir()
+    assert (confguard / "dot.envrc").is_file()
+    assert (confguard / "dot.run").is_dir()
     assert (confguard / "xxx/xxx.txt").is_file()
 
     # then: .confguard backup exists
@@ -60,8 +60,8 @@ def test__guard():
     assert (TEST_PROJ / "xxx/xxx.txt").is_symlink()
 
     # then: the links point to the confguard directory replacements
-    assert Path(TEST_PROJ / ".envrc").resolve() == Path(confguard / ".envrc")
-    assert Path(TEST_PROJ / ".run").resolve() == Path(confguard / ".run")
+    assert Path(TEST_PROJ / ".envrc").resolve() == Path(confguard / "dot.envrc")
+    assert Path(TEST_PROJ / ".run").resolve() == Path(confguard / "dot.run")
 
     # then backlink created
     assert Path(confguard / f".{cg.sentinel}.confguard").resolve() == TEST_PROJ
@@ -156,8 +156,8 @@ def test__find_and_link():
     assert confguard.name == cg.sentinel
 
     # then: confguard directory contains the files and dirs
-    assert (confguard / ".envrc").is_file()
-    assert (confguard / ".run").is_dir()
+    assert (confguard / "dot.envrc").is_file()
+    assert (confguard / "dot.run").is_dir()
     assert (confguard / "xxx/xxx.txt").is_file()
 
     # then: .confguard backup exists
@@ -169,10 +169,10 @@ def test__find_and_link():
     assert (TEST_PROJ / "xxx/xxx.txt").is_symlink()
 
     # then: the links point to the confguard directory replacements
-    assert Path(TEST_PROJ / ".envrc").resolve() == Path(confguard / ".envrc")
-    assert Path(TEST_PROJ / ".run").resolve() == Path(confguard / ".run")
+    assert Path(TEST_PROJ / ".envrc").resolve() == Path(confguard / "dot.envrc")
+    assert Path(TEST_PROJ / ".run").resolve() == Path(confguard / "dot.run")
 
-    # then backlink created
+    # # then backlink created
     assert Path(confguard / f".{cg.sentinel}.confguard").resolve() == TEST_PROJ
 
 
@@ -210,8 +210,8 @@ def test__guard_relative():
     assert confguard.name == cg.sentinel
 
     # then: confguard directory contains the files and dirs
-    assert (confguard / ".envrc").is_file()
-    assert (confguard / ".run").is_dir()
+    assert (confguard / "dot.envrc").is_file()
+    assert (confguard / "dot.run").is_dir()
     assert (confguard / "xxx/xxx.txt").is_file()
 
     # then: .confguard backup exists
@@ -223,8 +223,8 @@ def test__guard_relative():
     assert (TEST_PROJ / "xxx/xxx.txt").is_symlink()
 
     # then: the links point to the confguard directory replacements
-    assert Path(TEST_PROJ / ".envrc").resolve() == Path(confguard / ".envrc")
-    assert Path(TEST_PROJ / ".run").resolve() == Path(confguard / ".run")
+    assert Path(TEST_PROJ / ".envrc").resolve() == Path(confguard / "dot.envrc")
+    assert Path(TEST_PROJ / ".run").resolve() == Path(confguard / "dot.run")
 
     # then backlink created
     assert Path(confguard / f".{cg.sentinel}.confguard").resolve() == TEST_PROJ

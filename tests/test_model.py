@@ -1,10 +1,12 @@
 import logging
 import shutil
+from pathlib import Path
 
 import pytest
 
 from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE
 from confguard.exceptions import BackupExistError
+from confguard.helper import normalize_path, denormalize_path
 from confguard.model import ConfGuard
 from tests.conftest import TARGET_DIR, TEST_PROJ
 
@@ -38,32 +40,37 @@ class TestSentinel:
 
 class TestFiles:
     @pytest.mark.parametrize(
-        "targets",
+        ("targets", "expected"),
         (
-            ["xxx/xxx.txt"],
-            [".run"],
-            [".envrc", ".run"],
-            [".envrc", ".run", "xxx/xxx.txt"],
+            [["xxx/xxx.txt"], ["xxx/xxx.txt"]],
+            [[".run"], ["dot.run"]],
+            [[".run", ".envrc"], ["dot.run", "dot.envrc"]],
+            [
+                [".run", ".envrc", "xxx/xxx.txt"],
+                ["dot.run", "dot.envrc", "xxx/xxx.txt"],
+            ],
         ),
     )
-    def test_move_files(self, targets):
+    def test_move_files(self, targets, expected):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
         cg.create_sentinel()
         cg.move_files()
         for t in targets:
-            assert cg.target_dir.joinpath(t).exists()
+            assert cg.target_dir.joinpath(normalize_path(Path(t))).exists()
             assert not cg.source_dir.joinpath(t).exists()
 
     @pytest.mark.parametrize(
-        "targets",
+        ("targets", "expected"),
         (
-            ["xxx/xxx.txt"],
-            [".run"],
-            [".envrc", ".run"],
-            [".envrc", ".run", "xxx/xxx.txt"],
+            # [["xxx/xxx.txt"], ["xxx/xxx.txt"]],
+            [[".run"], ["dot.run"]],
+            [
+                [".run", ".envrc", "xxx/xxx.txt"],
+                ["dot.run", "dot.envrc", "xxx/xxx.txt"],
+            ],
         ),
     )
-    def test_unmove_files(self, targets):
+    def test_unmove_files(self, targets, expected):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
         cg.files = targets  # would be loaded from toml state
         cg.create_sentinel()
@@ -72,7 +79,7 @@ class TestFiles:
         # when: unmove files
         cg.unmove_files()
         for t in targets:
-            assert not cg.target_dir.joinpath(t).exists()
+            assert not cg.target_dir.joinpath(normalize_path(Path(t))).exists()
             assert cg.source_dir.joinpath(t).exists()
         assert not cg.target_dir.exists()
 
@@ -89,7 +96,7 @@ class TestBackup:
     )
     def test_create_bkp(self, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
-        cg.create_bkp(TEST_PROJ, targets)
+        cg.create_bkp(TEST_PROJ, targets, normalizer=lambda x: x)
 
         bkp_dir = TEST_PROJ / CONFGUARD_BKP_DIR
         assert bkp_dir.exists()
@@ -100,10 +107,10 @@ class TestBackup:
     @pytest.mark.parametrize("targets", ([".envrc"],))
     def test_create_bkp_but_bkp_dir_exists(self, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
-        cg.create_bkp(TEST_PROJ, targets)
+        cg.create_bkp(TEST_PROJ, targets, normalizer=lambda x: x)
 
         with pytest.raises(BackupExistError) as e:
-            cg.create_bkp(TEST_PROJ, targets)
+            cg.create_bkp(TEST_PROJ, targets, normalizer=lambda x: x)
 
     @pytest.mark.parametrize("targets", ([".envrc", ".run", "xxx/xxx.txt"],))
     def test_create_bkp_of_target_dir(self, targets):
@@ -111,13 +118,13 @@ class TestBackup:
         cg.create_sentinel()
         cg.move_files()
 
-        cg.create_bkp(cg.target_dir, targets)
+        cg.create_bkp(cg.target_dir, targets, normalizer=normalize_path)
 
         bkp_dir = cg.target_dir / CONFGUARD_BKP_DIR
         assert bkp_dir.exists()
         assert len(list(bkp_dir.glob("*"))) == len(targets)
         for target in targets:
-            assert (bkp_dir / target).exists()
+            assert (normalize_path(bkp_dir / target)).exists()
 
     @pytest.mark.parametrize(
         "targets",
@@ -129,7 +136,7 @@ class TestBackup:
     def test_restore_bkp(self, targets):
         # given: backup created
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
-        cg.create_bkp(TEST_PROJ, targets)
+        cg.create_bkp(TEST_PROJ, targets, normalizer=lambda x: x)
 
         # when: all files are moved/deleted
         shutil.rmtree(TEST_PROJ / ".run", ignore_errors=True)  # will be linked
@@ -137,7 +144,7 @@ class TestBackup:
         (TEST_PROJ / ".envrc").unlink(missing_ok=True)  # will be linked
         (TEST_PROJ / "xxx/xxx.txt").unlink(missing_ok=True)  # will be linked
 
-        cg.restore_bkp(TEST_PROJ, targets)
+        cg.restore_bkp(TEST_PROJ, targets, normalizer=lambda x: x)
 
         # then: files are restored
         (TEST_PROJ / ".run").exists()
@@ -154,7 +161,7 @@ class TestBackup:
     def test_delete_bkp(self, targets):
         bkp_dir = TEST_PROJ / CONFGUARD_BKP_DIR
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
-        cg.create_bkp(TEST_PROJ, targets)
+        cg.create_bkp(TEST_PROJ, targets, normalizer=lambda x: x)
 
         cg.delete_dir(dir_=bkp_dir)
         assert not bkp_dir.exists()
@@ -179,9 +186,9 @@ class TestLinks:
     def test_create_links(self, clear_test_proj, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets)
         cg.create_sentinel()
-        cg.create_lk(targets)
+        cg.create_lk(targets, normalizer=normalize_path)
         for rel_path in targets:
-            tgt_path = TARGET_DIR / rel_path
+            tgt_path = normalize_path(TARGET_DIR / rel_path)
             src_path = TEST_PROJ / rel_path
             assert src_path.is_symlink()
 
@@ -189,9 +196,9 @@ class TestLinks:
     def test_create_links_relative(self, clear_test_proj, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets, is_relative=True)
         cg.create_sentinel()
-        cg.create_lk(targets)
+        cg.create_lk(targets, normalizer=normalize_path)
         for rel_path in targets:
-            tgt_path = TARGET_DIR / rel_path
+            tgt_path = normalize_path(TARGET_DIR / rel_path)
             src_path = TEST_PROJ / rel_path
             assert src_path.is_symlink()
 
@@ -199,7 +206,7 @@ class TestLinks:
     def test_remove_links(self, clear_test_proj, targets):
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets, is_relative=True)
         cg.create_sentinel()
-        cg.create_lk(targets)
+        cg.create_lk(targets, normalizer=normalize_path)
 
         cg.remove_lk(targets)
         for rel_path in targets:
@@ -211,7 +218,7 @@ class TestLinks:
         caplog.set_level(logging.DEBUG)
         cg = ConfGuard(source_dir=TEST_PROJ, targets=targets, is_relative=True)
         cg.create_sentinel()
-        cg.create_lk(targets)
+        cg.create_lk(targets, normalizer=normalize_path)
         cg.remove_lk(targets)
 
         # when: remove non existing links

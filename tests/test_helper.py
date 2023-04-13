@@ -8,6 +8,10 @@ from confguard.helper import (
     _create_relative_path,
     deserialize_from_base64,
     serialize_to_base64,
+    normalize_name,
+    denormalize_name,
+    normalize_path,
+    denormalize_path,
 )
 
 _log = logging.getLogger(__name__)
@@ -104,3 +108,39 @@ aARoBWUu
     obj = deserialize_from_base64(serialized)
     print(f"\n{obj}")
     assert obj == FILES
+
+
+def test_normalize_name():
+    assert normalize_name(".xxx") == "dot.xxx"
+    assert normalize_name("xxx") == "xxx"
+
+
+def test_denormalize_name():
+    assert denormalize_name("dot.xxx") == ".xxx"
+    assert denormalize_name("xxx") == "xxx"
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    (
+        ["xxx/xxx.txt", "xxx/xxx.txt"],
+        [".run", "dot.run"],
+        [".run/.env", "dot.run/dot.env"],
+        ["./.run/.env", "./dot.run/dot.env"],
+    ),
+)
+def test_normalize_path(path, expected):
+    assert normalize_path(Path(path)) == Path(expected)
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    (
+        ["xxx/xxx.txt", "xxx/xxx.txt"],
+        ["dot.run", ".run"],
+        ["dot.run/dot.env", ".run/.env"],
+        ["./dot.run/dot.env", "./.run/.env"],
+    ),
+)
+def test_denormalize_path(path, expected):
+    assert denormalize_path(Path(path)) == Path(expected)

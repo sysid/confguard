@@ -3,14 +3,15 @@ import shutil
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Callable
 
 from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE, config
 from confguard.exceptions import BackupExistError, DirectoryNotDeleted
 from confguard.helper import (
     _create_relative_path,
     is_directory_containing_only,
-    is_directory_empty,
+    normalize_path,
+    denormalize_path,
 )
 
 _log = logging.getLogger(__name__)
@@ -50,9 +51,14 @@ class ConfGuard:
         self.sentinel = None
 
     @staticmethod
-    def _move_files(source_dir: Path, target_dir: Path, targets: list[str]) -> None:
+    def _move_files(
+        source_dir: Path,
+        target_dir: Path,
+        targets: list[str],
+        normalizer: Callable[[Path], Path],
+    ) -> None:
         for rel_path in targets:
-            tgt_path = target_dir / rel_path
+            tgt_path = normalizer(target_dir / rel_path)
             src_path = source_dir / rel_path
 
             if src_path.exists():
@@ -65,11 +71,19 @@ class ConfGuard:
     def move_files(self) -> None:
         assert self.sentinel is not None, "Sentinel not created"
         Path(self.target_dir).mkdir(parents=True, exist_ok=True)
-        self._move_files(self.source_dir, self.target_dir, targets=self.targets)
+        self._move_files(
+            self.source_dir,
+            self.target_dir,
+            targets=self.targets,
+            normalizer=normalize_path,
+        )
 
     def unmove_files(self) -> None:
         """Restore files from confguard directory, based on saved file list"""
-        self._move_files(self.target_dir, self.source_dir, self.files)
+        files = [str(normalize_path(Path(f))) for f in self.files]
+        self._move_files(
+            self.target_dir, self.source_dir, files, normalizer=denormalize_path
+        )
         if is_directory_containing_only(
             self.target_dir, ["_confguard", ".confguard.bkp"]
         ):
@@ -80,15 +94,20 @@ class ConfGuard:
             )
 
     @staticmethod
-    def _create_bkp(source_dir: Path, bkp_dir: Path, targets: list[str]) -> None:
+    def _create_bkp(
+        source_dir: Path,
+        bkp_dir: Path,
+        targets: list[str],
+        normalizer: Callable[[Path], Path],
+    ) -> None:
         try:
             Path(bkp_dir).mkdir(parents=True, exist_ok=False)
         except FileExistsError:
             raise BackupExistError(f"Backup dir {bkp_dir} already exists.")
 
         for rel_path in targets:
-            bkp_path = bkp_dir / rel_path
-            src_path = source_dir / rel_path
+            bkp_path = normalizer(bkp_dir / rel_path)
+            src_path = normalizer(source_dir / rel_path)
 
             if src_path.exists():
                 if not src_path.is_symlink():
@@ -105,16 +124,23 @@ class ConfGuard:
             else:
                 _log.warning(f"{src_path} does not exist")
 
-    def create_bkp(self, dir_: Path, targets: list[str]) -> None:
+    def create_bkp(
+        self, dir_: Path, targets: list[str], normalizer: Callable[[Path], Path]
+    ) -> None:
         bkp_dir = dir_ / CONFGUARD_BKP_DIR
-        self._create_bkp(dir_, bkp_dir, targets)
+        self._create_bkp(dir_, bkp_dir, targets, normalizer=normalizer)
 
     @staticmethod
-    def _restore_bkp(source_dir: Path, bkp_dir: Path, targets: list[str]) -> None:
+    def _restore_bkp(
+        source_dir: Path,
+        bkp_dir: Path,
+        targets: list[str],
+        normalizer: Callable[[Path], Path],
+    ) -> None:
         assert bkp_dir.exists(), f"Backup dir {bkp_dir} does not exist"
         for rel_path in targets:
-            bkp_path = bkp_dir / rel_path
-            src_path = source_dir / rel_path
+            bkp_path = normalizer(bkp_dir / rel_path)
+            src_path = normalizer(source_dir / rel_path)
 
             if bkp_path.exists():
                 if bkp_path.is_file():
@@ -145,9 +171,11 @@ class ConfGuard:
                     f"File {bkp_path} does not exist in backup. Cannot restore."
                 )
 
-    def restore_bkp(self, dir_: Path, targets: list[str]) -> None:
+    def restore_bkp(
+        self, dir_: Path, targets: list[str], normalizer: Callable[[Path], Path]
+    ) -> None:
         bkp_dir = dir_ / CONFGUARD_BKP_DIR
-        self._restore_bkp(dir_, bkp_dir, targets)
+        self._restore_bkp(dir_, bkp_dir, targets, normalizer=normalizer)
 
     @staticmethod
     def delete_dir(dir_: Path) -> None:
@@ -160,9 +188,10 @@ class ConfGuard:
                 f"{dir_} could not be deleted. Please delete it manually."
             )
 
-    def create_lk(self, targets: list[str]) -> None:
+    def create_lk(self, targets: list[str], normalizer: Callable[[Path], Path]) -> None:
         for rel_path in targets:
-            tgt_path = self.target_dir / rel_path
+            # tgt_path = self.target_dir / rel_path
+            tgt_path = normalizer(self.target_dir / rel_path)
             src_path = self.source_dir / rel_path
 
             if self.is_relative:
