@@ -201,9 +201,11 @@ def _find_and_link(source_dir: Path) -> ConfGuard:
     return _guard(source_dir)
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     verbose: bool = typer.Option(False, "-v", "--verbose", help="verbosity"),
+    version: bool = typer.Option(False, "-V", "--version", help="show version"),
 ):
     # log_fmt = r"%(asctime)-15s %(levelname)-7s %(message)s"
     log_fmt = r"%(message)s"
@@ -234,9 +236,13 @@ def main(
             datefmt="%m-%d %H:%M:%S",
             handlers=[RichHandler(show_time=False, show_path=False, console=console)],
         )
+    if ctx.invoked_subcommand is None and version:
+        ctx.invoke(print_version)
+    if ctx.invoked_subcommand is None and not version:
+        typer.echo(ctx.get_help())
 
 
-@app.command("version", help="Show version")
+@app.command("version", help="Show version", hidden=True)
 def print_version() -> None:
     typer.echo(f"Confguard version: {__version__}")
 
