@@ -24,6 +24,22 @@ def deserialize_from_base64(base64_str: str) -> Any:
     return obj
 
 
+def is_directory_containing_only(directory_path, allowed_names) -> bool:
+    for item in Path(directory_path).iterdir():
+        if item.is_file() and item.name not in allowed_names:
+            return False
+        elif item.is_dir():
+            if is_directory_empty(item):
+                return True
+            if item.name not in allowed_names:
+                return False
+    return True
+
+
+def is_directory_empty(directory_path) -> bool:
+    return not any(Path(directory_path).iterdir())
+
+
 def _create_relative_path(source: str, target: str) -> Path:
     source_path = Path(source).parent
     target_path = Path(target).parent

@@ -7,7 +7,11 @@ from typing import Optional
 
 from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE, config
 from confguard.exceptions import BackupExistError, DirectoryNotDeleted
-from confguard.helper import _create_relative_path
+from confguard.helper import (
+    _create_relative_path,
+    is_directory_empty,
+    is_directory_containing_only,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -38,6 +42,11 @@ class ConfGuard:
         _log.debug(f"Sentinel created: {self.sentinel=}")
 
     def remove_sentinel(self) -> None:
+        if self.target_dir.exists():
+            _log.warning(
+                f"Directory {self.target_dir} still exists. Keeping sentinel in .confguard"
+            )
+            return
         self.sentinel = None
 
     @staticmethod
@@ -61,7 +70,14 @@ class ConfGuard:
     def unmove_files(self) -> None:
         """Restore files from confguard directory, based on saved file list"""
         self._move_files(self.target_dir, self.source_dir, self.files)
-        shutil.rmtree(self.target_dir)
+        if is_directory_containing_only(
+            self.target_dir, ["_confguard", ".confguard.bkp"]
+        ):
+            shutil.rmtree(self.target_dir)
+        else:
+            _log.warning(
+                f"Directory {self.target_dir} is not empty. Please remove manually."
+            )
 
     @staticmethod
     def _create_bkp(source_dir: Path, bkp_dir: Path, targets: list[str]) -> None:
