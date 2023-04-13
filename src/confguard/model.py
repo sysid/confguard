@@ -9,8 +9,8 @@ from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE, conf
 from confguard.exceptions import BackupExistError, DirectoryNotDeleted
 from confguard.helper import (
     _create_relative_path,
-    is_directory_empty,
     is_directory_containing_only,
+    is_directory_empty,
 )
 
 _log = logging.getLogger(__name__)

@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.theme import Theme
 
+from confguard import __version__
 from confguard.adapter import TomlRepoConfGuard
 from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE, config
 from confguard.exceptions import InvalidConfigError
@@ -233,6 +234,11 @@ def main(
             datefmt="%m-%d %H:%M:%S",
             handlers=[RichHandler(show_time=False, show_path=False, console=console)],
         )
+
+
+@app.command("version", help="Show version")
+def print_version() -> None:
+    typer.echo(f"Confguard version: {__version__}")
 
 
 if __name__ == "__main__":
