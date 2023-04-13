@@ -140,7 +140,7 @@ def _unguard(source_dir: Path) -> ConfGuard:
         cg.remove_lk(cg.files)
         cg.back_remove()
         cg.unmove_files()
-        cg.remove_sentinel()
+        cg.remove_sentinel()  # only if confguard dir is empty
     except Exception as e:
         _log.error(f"Error occurred, rolling back: {e}")
         cg.restore_bkp(cg.target_dir, cg.files)

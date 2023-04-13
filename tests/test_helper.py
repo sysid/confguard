@@ -6,12 +6,12 @@ import pytest
 # noinspection PyProtectedMember
 from confguard.helper import (
     _create_relative_path,
-    deserialize_from_base64,
-    serialize_to_base64,
-    normalize_name,
     denormalize_name,
-    normalize_path,
     denormalize_path,
+    deserialize_from_base64,
+    normalize_name,
+    normalize_path,
+    serialize_to_base64,
 )
 
 _log = logging.getLogger(__name__)

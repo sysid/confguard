@@ -3,15 +3,15 @@ import shutil
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE, config
 from confguard.exceptions import BackupExistError, DirectoryNotDeleted
 from confguard.helper import (
     _create_relative_path,
+    denormalize_path,
     is_directory_containing_only,
     normalize_path,
-    denormalize_path,
 )
 
 _log = logging.getLogger(__name__)
@@ -43,6 +43,8 @@ class ConfGuard:
         _log.debug(f"Sentinel created: {self.sentinel=}")
 
     def remove_sentinel(self) -> None:
+        """ Remove sentinel from .confguard if directory is empty
+        """
         if self.target_dir.exists():
             _log.warning(
                 f"Directory {self.target_dir} still exists. Keeping sentinel in .confguard"

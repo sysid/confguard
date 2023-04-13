@@ -6,7 +6,7 @@ import pytest
 
 from confguard.environment import CONFGUARD_BKP_DIR, CONFGUARD_CONFIG_FILE
 from confguard.exceptions import BackupExistError
-from confguard.helper import normalize_path, denormalize_path
+from confguard.helper import denormalize_path, normalize_path
 from confguard.model import ConfGuard
 from tests.conftest import TARGET_DIR, TEST_PROJ
 
