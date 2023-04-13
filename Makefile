@@ -93,17 +93,23 @@ uninstall:  ## pipx uninstall
 .PHONY: bump-major
 bump-major:  ## bump-major, tag and push
 	bumpversion --commit --tag major
+	git push
 	git push --tags
+	@$(MAKE) create-release
 
 .PHONY: bump-minor
 bump-minor:  ## bump-minor, tag and push
 	bumpversion --commit --tag minor
+	git push
 	git push --tags
+	@$(MAKE) create-release
 
 .PHONY: bump-patch
 bump-patch:  ## bump-patch, tag and push
 	bumpversion --commit --tag patch
+	git push
 	git push --tags
+	@$(MAKE) create-release
 	#git push  # triggers additional build, but no code change (for bumping workspace must be clean)
 
 .PHONY: upload
