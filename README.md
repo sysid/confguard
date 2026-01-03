@@ -1,23 +1,55 @@
 # ConfGuard
 
-A highly opinionated configuration management tool for securing and managing sensitive environment
-files across different deployment stages.
-
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-2021-orange.svg)](https://www.rust-lang.org/)
 
-## Overview
+A highly opinionated configuration management tool for securing and managing sensitive environment
+files across different deployment stages.
 
-ConfGuard helps manage sensitive configuration files by:
-- Moving configuration files to a secure, centralized location
+ConfGuard helps manage sensitive configuration and data by:
+- Moving configuration and files to a secure, centralized location
 - Creating symbolic links to maintain project structure
-- Supporting multiple environment configurations (local, test, integration, production)
-- Integrating with SOPS for encryption/decryption workflows
-- Providing IDE integration for development workflows
+- Integrating with SOPS to secure the centralized sensitive data store
+
+### The Problem
+
+`.envrc` files (used by [direnv](https://direnv.net/)) contain sensitive data:
+- Database credentials
+- API keys and secrets
+- Cloud provider tokens
+
+Projects may have other sensitive.
+
+These files live in your project directory. One wrong `git add .` and your
+secrets are in version control history forever.
+
+### The Solution
+
+ConfGuard creates a **sentinel directory** — a secure vault for each project's sensitive files:
+
+```
+your-project/                         $CONFGUARD_BASE_DIR/guarded/project-uuid/
+├── .envrc ──────── symlink ────────► ├── dot.envrc         (your config)
+├── certs/key.pem ── symlink ───────► ├── certs/key.pem     (your certs)
+└── src/                              └── environments/
+                                          ├── local.env
+                                          ├── test.env
+                                          └── prod.env
+```
+
+**The core idea:**
+
+1. **`.envrc` is the entry point** — When guarded, it creates your sentinel directory and a
+   bidirectional link
+2. **Sentinel directory is the secure vault** — Lives outside any git repo, holds all sensitive files for this project
+3. **Symlinks replace originals** — Your project structure stays intact, but files are just pointers (safe to commit)
+4. **Add more files anytime** — Use `guard-one` to move additional sensitive files (certificates, keys, configs) into the vault
+5. **Protection (encryption)** via builtin SOPS integration
+
+The linking is via a dedicated confguard section which will be added to `.envrc`.
 
 ## Table of Contents
 
-- [Features](#features)
 - [Architecture](#architecture)
 - [Getting Started](#getting-started)
 - [Usage](#usage)
@@ -25,27 +57,6 @@ ConfGuard helps manage sensitive configuration files by:
 - [Development](#development)
 - [Testing](#testing)
 - [License](#license)
-
-## Features
-
-### Core Functionality
-- **Guard Projects**: Secure existing projects by moving `.envrc` files to a managed location
-- **Multi-Environment Support**: Automatically creates environment files for different stages
-- **Symbolic Link Management**: Maintains project structure while securing configurations
-- **SOPS Integration**: Built-in support for encrypting/decrypting sensitive files (including binary files)
-- **IDE Integration**: Creates IntelliJ/VSCode run configurations
-
-### Environment Files
-When guarding a project, ConfGuard automatically creates multiple environment files:
-
-| File | Purpose |
-|------|---------|
-| `local.env` | Local development environment |
-| `test.env` | Testing environment |
-| `int.env` | Integration/staging environment |
-| `prod.env` | Production environment |
-
-Each file contains `export RUN_ENV="<environment>"` to identify the active environment.
 
 ## Architecture
 
@@ -68,27 +79,33 @@ Each file contains `export RUN_ENV="<environment>"` to identify the active envir
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Source Structure
+### Environment Files
+When guarding a project, ConfGuard automatically creates multiple environment files:
 
+| File | Purpose |
+|------|---------|
+| `local.env` | Local development environment |
+| `test.env` | Testing environment |
+| `int.env` | Integration/staging environment |
+| `prod.env` | Production environment |
+
+Each file contains `export RUN_ENV="<environment>"` to identify the active environment.
+
+**Why multiple environments?**
+
+Keep environment-specific variables (database URLs, API keys, feature flags) in separate files, then switch between them by changing one variable rather than maintaining multiple `.envrc` files or manually editing values.
+
+**Switching environments:**
+
+The `RUN_ENV` variable determines which environment is active:
+
+```bash
+rsenv build "$SOPS_PATH/environments/${RUN_ENV:-local}.env"
 ```
-confguard/src/
-├── main.rs        # Entry point, CLI parsing, logging setup
-├── lib.rs         # Library exports
-├── errors.rs      # Error types with thiserror
-├── cli/           # Command-line interface
-│   ├── args.rs    # Command definitions (clap)
-│   └── commands.rs# Command execution logic
-├── core/          # Core guarding functionality
-│   ├── guard.rs   # ConfGuard struct and operations
-│   └── config.rs  # Configuration management
-├── sops/          # SOPS encryption integration
-│   ├── manager.rs # Encryption workflow orchestration
-│   ├── crypto.rs  # SOPS binary invocation
-│   └── gitignore.rs # Gitignore management
-└── util/          # Utility functions
-    ├── path/      # Path manipulation utilities
-    └── helper/    # General helpers
-```
+
+Setting `RUN_ENV=int` loads `int.env` instead of the default `local.env`.
+
+This is best used in combination with [rsenv](https://github.com/sysid/rs-env).
 
 ## Getting Started
 
@@ -101,17 +118,9 @@ confguard/src/
 
 ### Installation
 
-**From source:**
 ```bash
-git clone https://github.com/sysid/rs-cg.git
-cd rs-cg
-make install
-```
-
-**Or using cargo:**
 ```bash
-cd confguard
-cargo install --path .
+cargo install confguard
 ```
 
 **Verify installation:**
@@ -168,7 +177,8 @@ ConfGuard supports two linking modes controlled by the `--absolute` flag:
 
 #### `guard` - Guard a Project Directory
 
-Moves `.envrc` to a secure location and creates a symlink in its place.
+Creates the sentinal directory, moves `.envrc` to it and creates bidirectional linking via symlink
+and `.envrc` confguard section (SOPS_PATH).
 
 ```bash
 confguard guard <source_dir> [--absolute]
@@ -185,9 +195,8 @@ confguard guard <source_dir> [--absolute]
 2. **Moved file**: `dot.envrc` (original `.envrc` content)
 3. **Environment files**: `environments/{local,test,int,prod}.env`
 4. **Symlink**: `.envrc` -> `dot.envrc` (relative or absolute based on flag)
-5. **IDE config**: `.idea/runConfigurations/rsenv.sh`
 
-**Metadata appended to dot.envrc:**
+**Metadata appended to .envrc:**
 ```bash
 #------------------------------- confguard start --------------------------------
 # config.relative = true
@@ -199,8 +208,6 @@ export SOPS_PATH=$HOME/xxx/rs-cg/guarded/myproject-a1b2c3d4
 dotenv $SOPS_PATH/environments/local.env
 #-------------------------------- confguard end ---------------------------------
 ```
-
-**Use case:** Secure a project's environment configuration while maintaining seamless access via the original `.envrc` path. No sensitive information ends up in version control.
 
 ---
 
