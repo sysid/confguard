@@ -1,0 +1,10 @@
+mod test_guard_create_sentinel;
+mod test_guard_create_sops_envs;
+mod test_guard_delete_section;
+mod test_guard_from_envrc;
+mod test_guard_from_guarded_project;
+mod test_guard_guard;
+mod test_guard_new_for_guarding;
+mod test_guard_relink;
+mod test_guard_unguard;
+mod test_guard_update_dot_envrc;

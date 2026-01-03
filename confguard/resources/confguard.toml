@@ -1,0 +1,21 @@
+# confguard.toml
+file_extensions_enc = [
+  "envrc",
+  "env",
+]
+
+file_names_enc = [
+    "dot_pypirc",
+    "dot_pgpass",
+    "kube_config",
+    "dot.m2.settings.xml",
+    "http-client.private.env.json",
+]
+
+file_extensions_dec = [
+    "enc",
+]
+
+file_names_dec = []
+
+gpg_key = "YOUR_GPG_KEY_FINGERPRINT"
